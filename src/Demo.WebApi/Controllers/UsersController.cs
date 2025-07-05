@@ -140,12 +140,15 @@ public class UsersController : ControllerBase
     [HttpGet("stats")]
     public ActionResult<object> GetUserStats()
     {
+        var averageAgeDays = _users.Any() ? 
+            _users.Average(u => (DateTime.UtcNow - u.CreatedAt).TotalDays) : 0;
+
         return Ok(new
         {
             TotalUsers = _users.Count,
             ActiveUsers = _users.Count(u => u.IsActive),
             InactiveUsers = _users.Count(u => !u.IsActive),
-            AverageAge = DateTime.UtcNow.Subtract(_users.Average(u => u.CreatedAt.Ticks)).Days
+            AverageAccountAgeDays = Math.Round(averageAgeDays, 1)
         });
     }
 }
