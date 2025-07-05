@@ -7,9 +7,9 @@ public class ApiEndpoint
     public string ControllerName { get; set; } = string.Empty;
     public string ActionName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<ApiParameter> Parameters { get; set; } = new();
+    public List<ApiParameter> Parameters { get; set; } = [];
     public ApiResponse Response { get; set; } = new();
-    public List<string> Tags { get; set; } = new();
+    public List<string> Tags { get; set; } = [];
 }
 
 public class ApiParameter
@@ -34,6 +34,6 @@ public class ApiDocumentation
     public string Title { get; set; } = "API Documentation";
     public string Version { get; set; } = "1.0.0";
     public string Description { get; set; } = string.Empty;
-    public List<ApiEndpoint> Endpoints { get; set; } = new();
-    public Dictionary<string, object> Schemas { get; set; } = new();
+    public List<ApiEndpoint> Endpoints { get; set; } = [];
+    public Dictionary<string, object> Schemas { get; set; } = [];
 }

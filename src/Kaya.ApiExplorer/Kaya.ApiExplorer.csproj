@@ -1,22 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Kaya.ApiExplorer</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>0.0.0</PackageVersion>
     <Authors>RazvanGolan</Authors>
     <Description>A Swagger-like API explorer that scans HTTP endpoints and displays them in a beautiful UI</Description>
     <PackageTags>swagger;api;explorer;documentation;endpoints</PackageTags>
     <RepositoryUrl>https://github.com/yourusername/kaya-api-explorer</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-  </PropertyGroup>
+  </PropertyGroup>  
+
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.2.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.3.0" />
     <PackageReference Include="System.Reflection" Version="4.3.0" />
   </ItemGroup>
 

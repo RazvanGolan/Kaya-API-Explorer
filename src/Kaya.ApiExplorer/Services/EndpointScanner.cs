@@ -1,8 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using Kaya.ApiExplorer.Models;
 
 namespace Kaya.ApiExplorer.Services;
@@ -67,7 +65,7 @@ public class EndpointScanner : IEndpointScanner
                     Description = GetMethodDescription(method),
                     Parameters = GetMethodParameters(method),
                     Response = GetMethodResponse(method),
-                    Tags = new List<string> { controllerName }
+                    Tags = [controllerName]
                 };
 
                 documentation.Endpoints.Add(endpoint);
@@ -75,7 +73,7 @@ public class EndpointScanner : IEndpointScanner
         }
     }
 
-    private List<string> GetHttpMethods(MethodInfo method)
+    private static List<string> GetHttpMethods(MethodInfo method)
     {
         var httpMethods = new List<string>();
         
@@ -92,7 +90,7 @@ public class EndpointScanner : IEndpointScanner
         }
 
         // If no HTTP method attributes, assume GET
-        if (!httpMethods.Any())
+        if (httpMethods.Count is 0)
         {
             httpMethods.Add("GET");
         }
@@ -100,7 +98,7 @@ public class EndpointScanner : IEndpointScanner
         return httpMethods;
     }
 
-    private string GetMethodRoute(MethodInfo method)
+    private static string GetMethodRoute(MethodInfo method)
     {
         var routeAttr = method.GetCustomAttribute<RouteAttribute>();
         if (routeAttr != null)
@@ -117,7 +115,7 @@ public class EndpointScanner : IEndpointScanner
         return method.Name.ToLower();
     }
 
-    private string CombineRoutes(string controllerRoute, string methodRoute)
+    private static string CombineRoutes(string controllerRoute, string methodRoute)
     {
         if (string.IsNullOrEmpty(methodRoute))
         {
@@ -132,13 +130,13 @@ public class EndpointScanner : IEndpointScanner
         return "/" + controllerRoute.TrimStart('/') + "/" + methodRoute.TrimStart('/');
     }
 
-    private string GetMethodDescription(MethodInfo method)
+    private static string GetMethodDescription(MethodInfo method)
     {
         // Could be enhanced to read XML documentation comments
         return $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
-    private List<ApiParameter> GetMethodParameters(MethodInfo method)
+    private static List<ApiParameter> GetMethodParameters(MethodInfo method)
     {
         var parameters = new List<ApiParameter>();
         
@@ -160,7 +158,7 @@ public class EndpointScanner : IEndpointScanner
         return parameters;
     }
 
-    private string DetermineParameterSource(ParameterInfo param)
+    private static string DetermineParameterSource(ParameterInfo param)
     {
         var fromBodyAttr = param.GetCustomAttribute<FromBodyAttribute>();
         if (fromBodyAttr != null) return "Body";
@@ -184,7 +182,7 @@ public class EndpointScanner : IEndpointScanner
         return "Body";
     }
 
-    private ApiResponse GetMethodResponse(MethodInfo method)
+    private static ApiResponse GetMethodResponse(MethodInfo method)
     {
         var returnType = method.ReturnType;
         
@@ -211,7 +209,7 @@ public class EndpointScanner : IEndpointScanner
         };
     }
 
-    private string GetFriendlyTypeName(Type type)
+    private static string GetFriendlyTypeName(Type type)
     {
         if (type == typeof(void)) return "void";
         if (type == typeof(string)) return "string";
@@ -229,7 +227,7 @@ public class EndpointScanner : IEndpointScanner
         return type.Name;
     }
 
-    private bool IsSystemAssembly(Assembly assembly)
+    private static bool IsSystemAssembly(Assembly assembly)
     {
         var name = assembly.GetName().Name ?? "";
         return name.StartsWith("System.") || 
