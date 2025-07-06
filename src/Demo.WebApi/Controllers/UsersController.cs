@@ -7,12 +7,12 @@ namespace Demo.WebApi.Controllers;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private static readonly List<User> _users = new()
-    {
+    private static readonly List<User> _users =
+    [
         new User { Id = 1, Name = "John Doe", Email = "john@example.com", CreatedAt = DateTime.UtcNow.AddDays(-30), IsActive = true },
         new User { Id = 2, Name = "Jane Smith", Email = "jane@example.com", CreatedAt = DateTime.UtcNow.AddDays(-15), IsActive = true },
         new User { Id = 3, Name = "Bob Johnson", Email = "bob@example.com", CreatedAt = DateTime.UtcNow.AddDays(-7), IsActive = false }
-    };
+    ];
 
     /// <summary>
     /// Gets all users with optional filtering

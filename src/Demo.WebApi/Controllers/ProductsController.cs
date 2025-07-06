@@ -7,12 +7,12 @@ namespace Demo.WebApi.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private static readonly List<Product> _products = new()
-    {
+    private static readonly List<Product> _products =
+    [
         new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 999.99m, StockQuantity = 10, Category = "Electronics", CreatedAt = DateTime.UtcNow.AddDays(-20) },
         new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, StockQuantity = 50, Category = "Electronics", CreatedAt = DateTime.UtcNow.AddDays(-10) },
         new Product { Id = 3, Name = "Coffee Mug", Description = "Ceramic coffee mug", Price = 12.99m, StockQuantity = 25, Category = "Home", CreatedAt = DateTime.UtcNow.AddDays(-5) }
-    };
+    ];
 
     /// <summary>
     /// Gets all products with optional filtering
