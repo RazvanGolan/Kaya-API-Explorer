@@ -274,9 +274,7 @@ public class ApiExplorerMiddleware
                         ` : '<p>No parameters</p>'}
                         
                         <div class=""response"">
-                            <h4>Response:</h4>
-                            <p><strong>Type:</strong> ${endpoint.response.type}</p>
-                            <p><strong>Description:</strong> ${endpoint.response.description}</p>
+                            <p><strong>Response Type:</strong> ${{endpoint.response.type}}</p>
                         </div>
                     </div>
                 `;

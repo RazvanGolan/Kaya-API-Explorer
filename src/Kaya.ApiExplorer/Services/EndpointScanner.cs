@@ -130,6 +130,7 @@ public class EndpointScanner : IEndpointScanner
         return "/" + controllerRoute.TrimStart('/') + "/" + methodRoute.TrimStart('/');
     }
 
+    // TODO: Enhance this to read XML documentation comments if available
     private static string GetMethodDescription(MethodInfo method)
     {
         // Could be enhanced to read XML documentation comments
@@ -199,7 +200,6 @@ public class EndpointScanner : IEndpointScanner
         return new ApiResponse
         {
             Type = GetFriendlyTypeName(returnType),
-            Description = $"Returns {GetFriendlyTypeName(returnType)}",
             StatusCodes = new Dictionary<int, string>
             {
                 { 200, "Success" },
@@ -209,6 +209,7 @@ public class EndpointScanner : IEndpointScanner
         };
     }
 
+    // TODO: See if I missing any common types
     private static string GetFriendlyTypeName(Type type)
     {
         if (type == typeof(void)) return "void";
@@ -217,7 +218,42 @@ public class EndpointScanner : IEndpointScanner
         if (type == typeof(bool)) return "boolean";
         if (type == typeof(DateTime)) return "datetime";
         if (type == typeof(Guid)) return "guid";
-        
+
+        // Handle arrays and collections
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType();
+            return elementType != null
+                ? $"{GetFriendlyTypeName(elementType)}[]"
+                : "object[]";
+        }
+
+        // Handle IEnumerable<T>, ICollection<T>, IList<T>, List<T>, etc.
+        if (type.IsGenericType)
+        {
+            var genericTypeDefinition = type.GetGenericTypeDefinition();
+            var genericArgs = type.GetGenericArguments();
+
+            if (genericTypeDefinition == typeof(IEnumerable<>) ||
+                genericTypeDefinition == typeof(ICollection<>) ||
+                genericTypeDefinition == typeof(IList<>) ||
+                genericTypeDefinition == typeof(List<>) ||
+                genericTypeDefinition == typeof(IReadOnlyCollection<>) ||
+                genericTypeDefinition == typeof(IReadOnlyList<>))
+            {
+                var elementType = genericArgs.FirstOrDefault();
+                return elementType != null
+                    ? $"{GetFriendlyTypeName(elementType)}[]"
+                    : "object[]";
+            }
+        }
+
+        // Handle non-generic IEnumerable (less common but possible)
+        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string))
+        {
+            return "object[]";
+        }
+
         var nullableType = Nullable.GetUnderlyingType(type);
         if (nullableType != null)
         {
