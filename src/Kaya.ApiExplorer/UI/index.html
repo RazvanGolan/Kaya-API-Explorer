@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaya ApiExplorer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16,18 22,12 16,6"></polyline>
+                            <polyline points="8,6 2,12 8,18"></polyline>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>Kaya ApiExplorer</h1>
+                        <p>.NET API Documentation</p>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search endpoints..." class="search-input">
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div id="controllersList" class="controllers-list">
+                    <!-- Controllers will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="main-header">
+                <div class="header-info">
+                    <h2 id="controllerTitle">UsersController</h2>
+                    <p id="controllerDescription">Manage user accounts and profiles</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="requestBuilderBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5,3 19,12 5,21 5,3"></polygon>
+                        </svg>
+                        Request Builder
+                    </button>
+                    <button class="btn btn-outline" id="authorizeBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <circle cx="12" cy="16" r="1"></circle>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Authorize
+                    </button>
+                    <button class="btn btn-outline" id="exportBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15,3 21,3 21,9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Export OpenAPI
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-body">
+                <div id="endpointsList" class="endpoints-list">
+                    <!-- Endpoints will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Builder Modal -->
+    <div id="requestBuilderModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <div>
+                    <h3>HTTP Request Builder</h3>
+                    <p>Send requests to any API endpoint</p>
+                </div>
+                <button class="modal-close" id="closeRequestBuilder">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="request-line">
+                    <select id="requestMethod" class="method-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                    </select>
+                    <input type="text" id="requestUrl" placeholder="Enter request URL" value="https://api.example.com/" class="url-input">
+                    <button id="sendRequestBtn" class="btn btn-primary">Send</button>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab-list">
+                        <button class="tab-trigger active" data-tab="headers">Headers</button>
+                        <button class="tab-trigger" data-tab="body">Body</button>
+                        <button class="tab-trigger" data-tab="response">Response</button>
+                    </div>
+
+                    <div class="tab-content active" id="headers-tab">
+                        <div class="tab-header">
+                            <h4>Request Headers</h4>
+                            <button class="btn btn-outline btn-sm" id="addHeaderBtn">Add Header</button>
+                        </div>
+                        <div id="headersList" class="headers-list">
+                            <!-- Headers will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="body-tab">
+                        <h4>Request Body</h4>
+                        <textarea id="requestBody" placeholder="Enter request body (JSON, XML, etc.)" class="body-textarea"></textarea>
+                    </div>
+
+                    <div class="tab-content" id="response-tab">
+                        <h4>Response</h4>
+                        <div id="responseContainer" class="response-container">
+                            <p class="text-muted">No response yet. Send a request to see the response here.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authorization Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3>Authorization</h3>
+                    <p>Configure API authentication</p>
+                </div>
+                <button class="modal-close" id="closeAuth">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Bearer Token (JWT)</label>
+                    <textarea id="authToken" placeholder="Enter your JWT token or API key" class="auth-textarea"></textarea>
+                    <p class="help-text">This token will be automatically added as "Authorization: Bearer {token}" header to all requests.</p>
+                </div>
+                <div class="modal-actions">
+                    <button id="saveTokenBtn" class="btn btn-primary">Save Token</button>
+                    <button id="clearTokenBtn" class="btn btn-outline">Clear</button>
+                </div>
+                <div id="tokenStatus" class="token-status hidden">
+                    <p>✓ Authorization token is set and will be used for requests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

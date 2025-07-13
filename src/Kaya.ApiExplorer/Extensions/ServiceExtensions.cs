@@ -9,15 +9,10 @@ namespace Kaya.ApiExplorer.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddKayaApiExplorer(this IServiceCollection services)
-    {
-        services.AddSingleton<IEndpointScanner, EndpointScanner>();
-        return services;
-    }
-
     public static IServiceCollection AddKayaApiExplorer(this IServiceCollection services, Action<KayaApiExplorerOptions> configure)
     {
         services.AddSingleton<IEndpointScanner, EndpointScanner>();
+        services.AddSingleton<IUIService, UIService>();
         
         var options = new KayaApiExplorerOptions();
         configure(options);
@@ -77,10 +72,9 @@ public static class ApplicationBuilderExtensions
     {
         if (options?.UseSidecar == true)
         {
-            // When using sidecar mode, we don't add the middleware
             var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger("Kaya.ApiExplorer.Extensions");
-            logger.LogInformation("Kaya API Explorer is running in sidecar mode. Middleware will not be registered.");
+            logger.LogInformation("Kaya API Explorer is running in sidecar mode.");
             return app;
         }
 

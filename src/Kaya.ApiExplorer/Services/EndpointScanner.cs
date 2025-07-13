@@ -24,6 +24,8 @@ public class EndpointScanner : IEndpointScanner
         var assemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !IsSystemAssembly(a));
 
+        var controllerGroups = new Dictionary<string, List<ApiEndpoint>>();
+
         foreach (var assembly in assemblies)
         {
             var controllerTypes = assembly.GetTypes()
@@ -31,15 +33,36 @@ public class EndpointScanner : IEndpointScanner
 
             foreach (var controllerType in controllerTypes)
             {
-                ScanController(controllerType, documentation);
+                var endpoints = ScanController(controllerType);
+                if (endpoints.Count > 0)
+                {
+                    var controllerName = controllerType.Name;
+                    if (!controllerGroups.ContainsKey(controllerName))
+                    {
+                        controllerGroups[controllerName] = [];
+                    }
+                    controllerGroups[controllerName].AddRange(endpoints);
+                }
             }
+        }
+
+        foreach (var group in controllerGroups)
+        {
+            var controller = new ApiController
+            {
+                Name = group.Key,
+                Description = GetControllerDescription(group.Key),
+                Endpoints = group.Value
+            };
+            documentation.Controllers.Add(controller);
         }
 
         return documentation;
     }
 
-    private void ScanController(Type controllerType, ApiDocumentation documentation)
+    private static List<ApiEndpoint> ScanController(Type controllerType)
     {
+        var endpoints = new List<ApiEndpoint>();
         var controllerName = controllerType.Name.Replace("Controller", "");
         var routeAttribute = controllerType.GetCustomAttribute<RouteAttribute>();
         var controllerRoute = routeAttribute?.Template ?? $"api/[controller]";
@@ -59,18 +82,112 @@ public class EndpointScanner : IEndpointScanner
                 var endpoint = new ApiEndpoint
                 {
                     Path = CombineRoutes(controllerRoute, methodRoute),
-                    Method = httpMethod,
-                    ControllerName = controllerName,
-                    ActionName = method.Name,
+                    HttpMethodType = httpMethod,
+                    MethodName = method.Name,
                     Description = GetMethodDescription(method),
                     Parameters = GetMethodParameters(method),
-                    Response = GetMethodResponse(method),
-                    Tags = [controllerName]
+                    RequestBody = GetMethodRequestBody(method),
+                    Responses = GetMethodResponses(method),
                 };
 
-                documentation.Endpoints.Add(endpoint);
+                endpoints.Add(endpoint);
             }
         }
+
+        return endpoints;
+    }
+
+    // TODO: Enhance this to read XML documentation comments if available
+    private static string GetControllerDescription(string controllerName)
+    {
+        // Simple description generation - could be enhanced with XML documentation
+        return controllerName switch
+        {
+            "UsersController" => "Manage user accounts and profiles",
+            "ProductsController" => "Product catalog management", 
+            "OrdersController" => "Order processing and management",
+            _ => $"{controllerName.Replace("Controller", "")} management"
+        };
+    }
+
+    private static ApiRequestBody? GetMethodRequestBody(MethodInfo method)
+    {
+        var bodyParam = method.GetParameters()
+            .FirstOrDefault(p => p.GetCustomAttribute<FromBodyAttribute>() != null ||
+                               (!p.ParameterType.IsPrimitive && 
+                                p.ParameterType != typeof(string) && 
+                                p.ParameterType != typeof(DateTime) && 
+                                p.ParameterType != typeof(Guid) &&
+                                p.GetCustomAttribute<FromQueryAttribute>() == null &&
+                                p.GetCustomAttribute<FromRouteAttribute>() == null &&
+                                p.GetCustomAttribute<FromHeaderAttribute>() == null));
+
+        if (bodyParam == null) return null;
+
+        return new ApiRequestBody
+        {
+            Type = GetFriendlyTypeName(bodyParam.ParameterType),
+            Description = $"Request body containing {bodyParam.Name} data",
+            Example = GenerateExampleJson(bodyParam.ParameterType)
+        };
+    }
+
+    // TODO: remove default responses and make it more dynamic based on method attributes
+    private static Dictionary<int, string> GetMethodResponses(MethodInfo method)
+    {
+        var httpMethods = GetHttpMethods(method);
+        var primaryMethod = httpMethods.FirstOrDefault() ?? "GET";
+        
+        return primaryMethod.ToUpper() switch
+        {
+            "GET" => new Dictionary<int, string>
+            {
+                { 200, "Success - Returns requested data" },
+                { 400, "Bad Request - Invalid parameters" },
+                { 401, "Unauthorized" },
+                { 404, "Not found" }
+            },
+            "POST" => new Dictionary<int, string>
+            {
+                { 201, "Created - Resource successfully created" },
+                { 400, "Bad Request - Invalid data" },
+                { 401, "Unauthorized" },
+                { 409, "Conflict - Resource already exists" }
+            },
+            "PUT" => new Dictionary<int, string>
+            {
+                { 200, "Success - Resource updated" },
+                { 400, "Bad Request - Invalid data" },
+                { 401, "Unauthorized" },
+                { 404, "Not found" }
+            },
+            "DELETE" => new Dictionary<int, string>
+            {
+                { 204, "No Content - Resource deleted" },
+                { 401, "Unauthorized" },
+                { 404, "Not found" }
+            },
+            _ => new Dictionary<int, string>
+            {
+                { 200, "Success" },
+                { 400, "Bad Request" },
+                { 500, "Internal Server Error" }
+            }
+        };
+    }
+
+    // TODO: Enhance this to generate more realistic examples based on type
+    private static string GenerateExampleJson(Type type)
+    {
+        // Simple example generation - could be enhanced
+        if (type == typeof(string)) return "\"string value\"";
+        if (type == typeof(int)) return "123";
+        if (type == typeof(bool)) return "true";
+        if (type == typeof(DateTime)) return "\"2023-07-13T10:30:00Z\"";
+        if (type == typeof(Guid)) return "\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"";
+
+        // For complex objects, return a placeholder
+        return "{\n  // Object properties\n}";
     }
 
     private static List<string> GetHttpMethods(MethodInfo method)
@@ -122,12 +239,12 @@ public class EndpointScanner : IEndpointScanner
             return "/" + controllerRoute.TrimStart('/');
         }
 
-        if (methodRoute.StartsWith("/"))
+        if (methodRoute.StartsWith('/'))
         {
             return methodRoute;
         }
 
-        return "/" + controllerRoute.TrimStart('/') + "/" + methodRoute.TrimStart('/');
+        return $"/{controllerRoute.TrimStart('/')}/{methodRoute.TrimStart('/')}";
     }
 
     // TODO: Enhance this to read XML documentation comments if available
@@ -181,32 +298,6 @@ public class EndpointScanner : IEndpointScanner
         }
 
         return "Body";
-    }
-
-    private static ApiResponse GetMethodResponse(MethodInfo method)
-    {
-        var returnType = method.ReturnType;
-        
-        // Handle Task<T> and ActionResult<T>
-        if (returnType.IsGenericType)
-        {
-            var genericArgs = returnType.GetGenericArguments();
-            if (genericArgs.Length > 0)
-            {
-                returnType = genericArgs[0];
-            }
-        }
-
-        return new ApiResponse
-        {
-            Type = GetFriendlyTypeName(returnType),
-            StatusCodes = new Dictionary<int, string>
-            {
-                { 200, "Success" },
-                { 400, "Bad Request" },
-                { 500, "Internal Server Error" }
-            }
-        };
     }
 
     // TODO: See if I missing any common types

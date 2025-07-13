@@ -10,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddKayaApiExplorer(port: 9090);
 
 // Option 2: Simple convenience method - Middleware mode  
-// builder.Services.AddKayaApiExplorerMiddleware(routePrefix: "/api-explorer");
+// builder.Services.AddKayaApiExplorer(routePrefix: "/api-explorer");
 
 // Option 3: Full configuration
 /*
