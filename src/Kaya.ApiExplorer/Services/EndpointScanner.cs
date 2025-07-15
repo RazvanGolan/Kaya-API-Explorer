@@ -254,17 +254,18 @@ public class EndpointScanner : IEndpointScanner
         return $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
+    // TODO: Enhance this to handle more complex parameter types like classes, records, etc.
     private static List<ApiParameter> GetMethodParameters(MethodInfo method)
     {
         var parameters = new List<ApiParameter>();
-        
+
         foreach (var param in method.GetParameters())
         {
             var apiParam = new ApiParameter
             {
                 Name = param.Name ?? "unknown",
                 Type = GetFriendlyTypeName(param.ParameterType),
-                Required = !param.HasDefaultValue && !param.ParameterType.IsValueType || 
+                Required = !param.HasDefaultValue && !param.ParameterType.IsValueType ||
                           (param.ParameterType.IsValueType && Nullable.GetUnderlyingType(param.ParameterType) == null),
                 DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
                 Source = DetermineParameterSource(param)

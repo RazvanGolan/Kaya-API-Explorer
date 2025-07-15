@@ -14,41 +14,11 @@ public class UIService : IUIService
         try
         {
             var assembly = Assembly.GetExecutingAssembly();
-            var assemblyPath = Path.GetDirectoryName(assembly.Location) ?? "";
-
-            // Try different paths to find the UI directory
-            // TODO: Change this logic to find the UI files more reliably without hardcoding paths
-            var possibleBasePaths = new[]
-            {
-                // Development scenario - when running from Demo.WebApi
-                Path.Combine(assemblyPath, "..", "..", "..", "..", "src", "Kaya.ApiExplorer", "UI"),
-                // Production scenario
-                Path.Combine(assemblyPath, "UI"),
-                // Alternative development path
-                Path.Combine(Directory.GetCurrentDirectory(), "..", "Kaya.ApiExplorer", "UI"),
-                // Direct project path
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "src", "Kaya.ApiExplorer", "UI")
-            };
-
-            string? uiPath = null;
-            foreach (var basePath in possibleBasePaths)
-            {
-                var indexPath = Path.Combine(basePath, "index.html");
-                if (File.Exists(indexPath))
-                {
-                    uiPath = basePath;
-                    break;
-                }
-            }
-
-            if (uiPath == null)
-            {
-                return GetFallbackUI();
-            }
-
-            var htmlContent = await File.ReadAllTextAsync(Path.Combine(uiPath, "index.html"));
-            var cssContent = await File.ReadAllTextAsync(Path.Combine(uiPath, "styles.css"));
-            var jsContent = await File.ReadAllTextAsync(Path.Combine(uiPath, "script.js"));
+            
+            // Read embedded resources directly
+            var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.index.html");
+            var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
+            var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.script.js");
 
             var finalHtml = htmlContent
                 .Replace("<link rel=\"stylesheet\" href=\"styles.css\">", $"<style>{cssContent}</style>")
@@ -60,6 +30,14 @@ public class UIService : IUIService
         {
             throw new InvalidOperationException($"Failed to load UI: {ex.Message}", ex);
         }
+    }
+
+    private static async Task<string> ReadEmbeddedResourceAsync(Assembly assembly, string resourceName)
+    {
+        var fullResourceName = $"Kaya.ApiExplorer.{resourceName}";
+        using var stream = assembly.GetManifestResourceStream(fullResourceName) ?? throw new InvalidOperationException($"Embedded resource '{fullResourceName}' not found. Available resources: {string.Join(", ", assembly.GetManifestResourceNames())}");
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
     }
 
     private static string GetFallbackUI()

@@ -5,10 +5,11 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 ## Features
 
 - 🚀 **Automatic Endpoint Discovery**: Scans your controllers and actions automatically
-- 🎨 **Beautiful UI**: Clean, modern interface inspired by Swagger
+- 🎨 **Beautiful UI**: Clean, modern interface with embedded HTML/CSS/JS
 - 📊 **Detailed Information**: Shows parameters, response types, HTTP methods, and more
 - 🔧 **Easy Integration**: Just add a few lines to your startup
 - 📦 **NuGet Package**: Simple installation via NuGet
+- 🔄 **Two Deployment Modes**: Choose between middleware (same server) or sidecar (separate server) modes
 
 ## Quick Start
 
@@ -29,11 +30,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllers();
-builder.Services.AddKayaApiExplorer();
+builder.Services.AddKayaApiExplorer(); 
 
 var app = builder.Build();
 
-// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseKayaApiExplorer("/api-explorer");
@@ -48,7 +48,7 @@ app.Run();
 
 ### 3. Access the UI
 
-Navigate to `https://localhost:5001/api-explorer` to view your API documentation.
+Navigate to `http://localhost:9090/api-explorer` to view your API documentation.
 
 ## Demo Project
 
@@ -61,7 +61,7 @@ cd src/Demo.WebApi
 dotnet run
 ```
 
-Then navigate to `https://localhost:5001/api-explorer` to see the API Explorer in action.
+Then navigate to `https://localhost:9090/api-explorer` to see the API Explorer in action.
 
 ## How It Works
 
@@ -71,7 +71,7 @@ Kaya API Explorer uses .NET reflection to scan your application's controllers an
 2. **Analyzes Actions**: Examines public methods and their HTTP attributes
 3. **Extracts Metadata**: Gathers information about parameters, return types, and routing
 4. **Generates Documentation**: Creates a JSON representation of your API
-5. **Serves UI**: Provides a beautiful web interface to explore the documentation
+5. **Serves UI**: Provides a beautiful web interface to explore the documentation and interact with the endpoints
 
 ## API Information Captured
 
@@ -86,6 +86,58 @@ For each endpoint, Kaya captures:
 
 ## Configuration
 
+Kaya API Explorer supports two deployment modes to fit different use cases:
+
+### 1. Sidecar Mode (Default)
+
+Runs as a separate service alongside your main application on a different port. This provides better isolation and prevents conflicts with your main application routes.
+
+```csharp
+// The sidecar automatically starts on a separate port (typically 9090)
+builder.Services.AddKayaApiExplorer();
+```
+
+### 2. Middleware Mode
+
+Runs on the same server as your main application, integrated directly into your request pipeline.
+
+```csharp
+// Configure to run as middleware on the same server
+builder.Services.AddKayaApiExplorer(options =>
+{
+    options.UseSidecar = false; // Run as middleware instead of sidecar
+});
+
+var app = builder.Build();
+
+// Add the middleware to your pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseKayaApiExplorer("/api-explorer");
+}
+```
+
+### Configuration via appsettings.json
+
+You can also configure Kaya API Explorer through your `appsettings.json` file:
+
+```json
+{
+  "KayaApiExplorer": {
+    "UseSidecar": false,
+    "RoutePrefix": "/api-docs",
+    "SidecarPort": 9090,
+    "EnabledInProduction": false
+  }
+}
+```
+
+Then in your `Program.cs`:
+
+```csharp
+builder.Services.AddKayaApiExplorer(builder.Configuration.GetSection("KayaApiExplorer"));
+```
+
 ### Custom Route Prefix
 
 You can customize the route where the API Explorer is served:
@@ -94,16 +146,12 @@ You can customize the route where the API Explorer is served:
 app.UseKayaApiExplorer("/my-custom-docs");
 ```
 
-### Environment-Specific Configuration
+### UI Customization
 
-Typically, you'll want to enable the API Explorer only in development:
-
-```csharp
-if (app.Environment.IsDevelopment())
-{
-    app.UseKayaApiExplorer();
-}
-```
+The UI is built with embedded HTML, CSS, and JavaScript files that are compiled into the assembly. This ensures:
+- **Reliable deployment**: No external file dependencies
+- **Fast loading**: Resources are served from memory
+- **Consistent experience**: UI works the same across all environments
 
 ## Project Structure
 
@@ -113,7 +161,8 @@ src/
 │   ├── Extensions/            # Service registration extensions
 │   ├── Middleware/            # HTTP middleware
 │   ├── Models/               # Data models
-│   └── Services/             # Core scanning logic
+│   ├── Services/             # Core scanning logic, UI service and sidecar logic
+│   └── UI/                   # Embedded HTML, CSS, and JavaScript files
 ├── Demo.WebApi/              # Demo application
 │   ├── Controllers/          # Sample controllers
 │   └── Models/              # Sample models
@@ -121,36 +170,28 @@ src/
     └── Kaya.ApiExplorer.Tests/  # Unit tests
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Roadmap
 
+### Current TODOs
+
+- [ ] **Execution Option**: Add "Try It Out" functionality for every endpoint
+- [ ] **Multiple Authentication Options**: Support various authentication schemes (Bearer, API Key, OAuth, etc.)
+- [ ] **Request/Response Improvements**: Better handling of complex types, classes, and object models
+- [ ] **Search Functionality**: Add search by endpoint name functionality in the UI
+- [ ] **Controller Documentation**: Read and display controller XML documentation if available
+
+### Future Features
+
 - [ ] Support for XML documentation comments
-- [ ] Custom UI themes
 - [ ] Export to OpenAPI/Swagger format
-- [ ] Authentication support for secured endpoints
 - [ ] Request/response examples
 - [ ] Model schema visualization
 - [ ] Dark mode support
+- [ ] Performance monitoring integration
+- [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
 
-## Comparison with Swagger
 
-| Feature | Kaya API Explorer | Swagger |
-|---------|------------------|---------|
-| Setup Complexity | Minimal | Moderate |
-| Runtime Discovery | ✅ | ✅ |
-| Custom UI | ✅ | ✅ |
-| Try It Out | ❌ (planned) | ✅ |
-| Export Options | ❌ (planned) | ✅ |
-| File Size | Lightweight | Heavy |
-| Dependencies | Minimal | Many |
