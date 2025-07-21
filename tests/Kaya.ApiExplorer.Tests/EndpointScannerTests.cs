@@ -23,7 +23,6 @@ public class EndpointScannerTests
         Assert.NotNull(result);
         Assert.Equal("Kaya API Explorer", result.Title);
         Assert.Equal("1.0.0", result.Version);
-        Assert.NotNull(result.Endpoints);
     }
 
     [Fact]
@@ -39,8 +38,6 @@ public class EndpointScannerTests
 
         // Assert
         Assert.IsType<ApiDocumentation>(result);
-        Assert.NotNull(result.Endpoints);
-        Assert.NotNull(result.Schemas);
     }
 }
 

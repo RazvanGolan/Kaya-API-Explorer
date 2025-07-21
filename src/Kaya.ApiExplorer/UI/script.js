@@ -104,7 +104,7 @@ function renderEndpoints() {
                 </div>
             </div>
             <div class="endpoint-content ${isExpanded ? "expanded" : ""}" id="content-${endpointId}">
-                ${renderEndpointTabs(endpoint, endpointId)}
+                ${renderEndpointTabs(endpoint, endpointId, index)}
             </div>
         `
 
@@ -112,7 +112,7 @@ function renderEndpoints() {
   })
 }
 
-function renderEndpointTabs(endpoint, endpointId) {
+function renderEndpointTabs(endpoint, endpointId, index) {
   return `
         <div class="tabs">
             <div class="tab-list">
@@ -135,7 +135,7 @@ function renderEndpointTabs(endpoint, endpointId) {
             </div>
             
             <div class="tab-content" id="${endpointId}-try">
-                ${renderTryItOut(endpoint)}
+                ${renderTryItOut(endpoint, index)}
             </div>
         </div>
     `
@@ -201,41 +201,113 @@ function renderResponses(endpoint) {
     .join("")
 }
 
-function renderTryItOut(endpoint) {
-  const parametersSection =
-    endpoint.parameters && endpoint.parameters.length > 0
-      ? `
-        <div style="margin-bottom: 16px;">
-            <h4 style="margin-bottom: 8px;">Parameters</h4>
-            ${endpoint.parameters
-              .map(
-                (param) => `
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                    <label style="width: 96px; font-weight: 500; font-size: 14px;">${param.name}:</label>
-                    <input type="text" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;">
-                </div>
-            `,
-              )
-              .join("")}
-        </div>
-    `
-      : ""
+function renderTryItOut(endpoint, index) {
+  const parametersSection = renderTryItOutParameters(endpoint);
+  const requestBodySection = renderTryItOutRequestBody(endpoint);
 
   return `
         <div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                <span class="badge ${getMethodColor(endpoint.httpMethodType)}">${endpoint.httpMethodType}</span>
-                <code class="endpoint-path" style="flex: 1;">${endpoint.path}</code>
-            </div>
             ${parametersSection}
-            <button class="btn btn-primary" style="width: 100%;">
+            ${requestBodySection}
+            <button class="btn btn-primary" style="width: 100%;" onclick="executeEndpointById('${selectedController}', ${index})">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="5,3 19,12 5,21 5,3"></polygon>
                 </svg>
                 Execute Request
             </button>
+            <div id="tryout-response-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}" class="response-container" style="margin-top: 16px; display: none;">
+                <!-- Response will be displayed here -->
+            </div>
         </div>
     `
+}
+
+function renderTryItOutParameters(endpoint) {
+  if (!endpoint.parameters || endpoint.parameters.length === 0) {
+    return '';
+  }
+
+  const queryParams = endpoint.parameters.filter(p => p.source === "Query");
+  const routeParams = endpoint.parameters.filter(p => p.source === "Route");
+  const headerParams = endpoint.parameters.filter(p => p.source === "Header");
+
+  let parametersHtml = '';
+
+  if (queryParams.length > 0) {
+    parametersHtml += `
+      <div class="tryout-parameter-group">
+        <h4>Query Parameters</h4>
+        ${queryParams.map(param => `
+          <div class="tryout-parameter-row">
+            <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
+            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <span class="tryout-parameter-type">${param.type}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (routeParams.length > 0) {
+    parametersHtml += `
+      <div class="tryout-parameter-group">
+        <h4>Path Parameters</h4>
+        ${routeParams.map(param => `
+          <div class="tryout-parameter-row">
+            <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
+            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <span class="tryout-parameter-type">${param.type}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  if (headerParams.length > 0) {
+    parametersHtml += `
+      <div class="tryout-parameter-group">
+        <h4>Header Parameters</h4>
+        ${headerParams.map(param => `
+          <div class="tryout-parameter-row">
+            <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
+            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <span class="tryout-parameter-type">${param.type}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  return parametersHtml;
+}
+
+function renderTryItOutRequestBody(endpoint) {
+  if (!endpoint.requestBody) {
+    return '';
+  }
+
+  const bodyId = `request-body-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const keyValueId = `request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+  return `
+    <div class="tryout-parameter-group">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h4>Request Body <span class="badge">${endpoint.requestBody.type}</span></h4>
+        <select id="bodyEditorMode-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}" class="method-select" onchange="switchTryItOutBodyEditorMode('${bodyId}', '${keyValueId}')">
+          <option value="json">JSON Editor</option>
+          <option value="keyvalue">Key-Value Editor</option>
+        </select>
+      </div>
+      <textarea id="${bodyId}" 
+                placeholder="Enter request body (JSON)" 
+                class="body-textarea request-body-editor active" 
+                style="width: 100%; height: 160px; font-family: Monaco, monospace;">${endpoint.requestBody.example}</textarea>
+      <div id="${keyValueId}" class="request-body-kv-editor" style="display: none;">
+        <div id="${keyValueId}-fields"></div>
+        <button type="button" class="btn btn-secondary" style="margin-top: 8px;" onclick="addRequestBodyField('${keyValueId}')">Add Field</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderHeaders() {
@@ -273,20 +345,17 @@ function toggleEndpoint(endpointId) {
 }
 
 function switchTab(event, endpointId, tabName) {
-  // Remove active class from all triggers in this endpoint
   const tabList = event.target.parentElement
   tabList.querySelectorAll(".tab-trigger").forEach((trigger) => {
     trigger.classList.remove("active")
   })
   event.target.classList.add("active")
 
-  // Hide all tab contents for this endpoint
   const tabsContainer = tabList.parentElement
   tabsContainer.querySelectorAll(".tab-content").forEach((content) => {
     content.classList.remove("active")
   })
 
-  // Show selected tab content
   document.getElementById(`${endpointId}-${tabName}`).classList.add("active")
 }
 
@@ -311,6 +380,394 @@ function addHeader() {
   renderHeaders()
 }
 
+async function executeEndpointById(controllerName, endpointIndex) {
+  const controller = controllers.find(c => c.name === controllerName);
+  if (!controller) {
+    console.error('Controller not found:', controllerName);
+    return;
+  }
+  
+  const endpoint = controller.endpoints[endpointIndex];
+  if (!endpoint) {
+    console.error('Endpoint not found at index:', endpointIndex);
+    return;
+  }
+  
+  await executeEndpoint(endpoint);
+}
+
+async function executeEndpoint(endpoint) {
+  const responseContainerId = `tryout-response-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const responseContainer = document.getElementById(responseContainerId);
+  
+  responseContainer.style.display = 'block';
+  responseContainer.innerHTML = '<p>Executing request...</p>';
+
+  try {
+    let finalUrl = endpoint.path;
+    const pathParams = endpoint.parameters?.filter(p => p.source === "Route") || [];
+
+    pathParams.forEach(param => {
+      const paramValue = document.getElementById(`param-${param.name}`)?.value || '';
+      if (paramValue) {
+        finalUrl = finalUrl.replace(`{${param.name}}`, paramValue);
+      }
+    });
+    const queryParams = endpoint.parameters?.filter(p => p.source === "Query") || [];
+    const queryString = new URLSearchParams();
+    
+    queryParams.forEach(param => {
+      const paramValue = document.getElementById(`param-${param.name}`)?.value;
+      if (paramValue) {
+        queryString.append(param.name, paramValue);
+      }
+    });
+
+    if (queryString.toString()) {
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString.toString();
+    }
+
+    const headers = { 'Content-Type': 'application/json' };
+    
+    const headerParams = endpoint.parameters?.filter(p => p.source === "Header") || [];
+    headerParams.forEach(param => {
+      const paramValue = document.getElementById(`param-${param.name}`)?.value;
+      if (paramValue) {
+        headers[param.name] = paramValue;
+      }
+    });
+
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
+    const requestOptions = {
+      method: endpoint.httpMethodType,
+      headers: headers
+    };
+
+    if (endpoint.httpMethodType !== 'GET' && endpoint.requestBody) {
+      const bodyTextarea = document.getElementById(`request-body-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      const keyValueEditor = document.getElementById(`request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      
+      let requestBodyContent = '';
+      
+      if (keyValueEditor && keyValueEditor.style.display !== 'none') {
+        const keyValueData = getKeyValueData(`request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        if (Object.keys(keyValueData).length > 0) {
+          requestBodyContent = JSON.stringify(keyValueData);
+        }
+      } else if (bodyTextarea && bodyTextarea.value.trim()) {
+        requestBodyContent = bodyTextarea.value.trim();
+      }
+      
+      if (requestBodyContent) {
+        try {
+          if (headers['Content-Type'].includes('json')) {
+            JSON.parse(requestBodyContent);
+          }
+          requestOptions.body = requestBodyContent;
+        } catch (e) {
+          throw new Error('Invalid JSON in request body: ' + e.message);
+        }
+      }
+    }
+
+    const response = await fetch(finalUrl, requestOptions);
+    const responseText = await response.text();
+    
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = responseText;
+    }
+
+    const statusClass = response.ok ? 'status-2xx' : 'status-4xx';
+    responseContainer.innerHTML = `
+      <div class="response-success" style="margin-top: 12px;">
+        <div class="response-status" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h5>Response</h5>
+          <span class="status-badge ${statusClass}">${response.status} ${response.statusText}</span>
+        </div>
+        <div class="response-headers" style="margin-bottom: 12px;">
+          <h6>Response Headers</h6>
+          <pre style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px;">${Array.from(response.headers.entries()).map(([key, value]) => `${key}: ${value}`).join('\\n')}</pre>
+        </div>
+        <div class="response-body">
+          <h6>Response Body</h6>
+          <div style="position: relative;">
+            <button class="copy-btn" onclick="copyResponseToClipboard(this)" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            <pre style="background: #f8f9fa; padding: 12px; border-radius: 4px; white-space: pre-wrap; margin: 0;">${typeof responseData === 'object' ? JSON.stringify(responseData, null, 2) : responseData}</pre>
+          </div>
+        </div>
+      </div>
+    `;
+
+  } catch (error) {
+    responseContainer.innerHTML = `
+      <div class="response-error" style="margin-top: 12px;">
+        <h5>Error</h5>
+        <p style="color: #dc3545;">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+function copyResponseToClipboard(button) {
+  const responseBody = button.nextElementSibling.textContent;
+  navigator.clipboard.writeText(responseBody).then(() => {
+    button.innerHTML = "✓";
+    setTimeout(() => {
+      button.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      `;
+    }, 2000);
+  });
+}
+
+function toggleRequestBodyEditor(jsonEditorId, keyValueEditorId, mode) {
+  const jsonEditor = document.getElementById(jsonEditorId);
+  const keyValueEditor = document.getElementById(keyValueEditorId);
+  
+  if (mode === 'json') {
+    if (keyValueEditor.style.display !== 'none') {
+      const keyValueData = getKeyValueData(keyValueEditorId);
+      if (Object.keys(keyValueData).length > 0) {
+        jsonEditor.value = JSON.stringify(keyValueData, null, 2);
+      }
+    }
+    
+    jsonEditor.style.display = 'block';
+    keyValueEditor.style.display = 'none';
+  } else {
+    try {
+      const jsonData = JSON.parse(jsonEditor.value || '{}');
+      populateKeyValueEditor(keyValueEditorId, jsonData);
+    } catch (e) {
+      populateKeyValueEditor(keyValueEditorId, {});
+    }
+    
+    jsonEditor.style.display = 'none';
+    keyValueEditor.style.display = 'block';
+  }
+}
+
+function populateKeyValueEditor(keyValueEditorId, data) {
+  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
+  fieldsContainer.innerHTML = '';
+  
+  Object.entries(data).forEach(([key, value]) => {
+    addRequestBodyFieldWithValue(keyValueEditorId, key, value);
+  });
+  
+  if (Object.keys(data).length === 0) {
+    addRequestBodyField(keyValueEditorId);
+  }
+}
+
+function addRequestBodyField(keyValueEditorId) {
+  addRequestBodyFieldWithValue(keyValueEditorId, '', '');
+}
+
+function addRequestBodyFieldWithValue(keyValueEditorId, key = '', value = '') {
+  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
+  const fieldIndex = fieldsContainer.children.length;
+  
+  const fieldRow = document.createElement('div');
+  fieldRow.className = 'tryout-parameter-row';
+  fieldRow.style.marginBottom = '8px';
+  
+  let valueStr = value;
+  if (typeof value === 'object' && value !== null) {
+    valueStr = JSON.stringify(value);
+  } else if (typeof value !== 'string') {
+    valueStr = String(value);
+  }
+  
+  fieldRow.innerHTML = `
+    <input type="text" placeholder="Field name" value="${key}" class="header-input" style="flex: 1; margin-right: 8px;" onchange="updateRequestBodyField('${keyValueEditorId}')">
+    <input type="text" placeholder="Field value" value="${valueStr}" class="header-input" style="flex: 2; margin-right: 8px;" onchange="updateRequestBodyField('${keyValueEditorId}')">
+    <button type="button" class="remove-header" onclick="removeRequestBodyField(this, '${keyValueEditorId}')" style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">&times;</button>
+  `;
+  
+  fieldsContainer.appendChild(fieldRow);
+}
+
+function removeRequestBodyField(button, keyValueEditorId) {
+  button.parentElement.remove();
+}
+
+function getKeyValueData(keyValueEditorId) {
+  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
+  const data = {};
+  
+  Array.from(fieldsContainer.children).forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const key = inputs[0].value.trim();
+    const value = inputs[1].value.trim();
+    
+    if (key) {
+      try {
+        data[key] = JSON.parse(value);
+      } catch (e) {
+        if (value === 'true') {
+          data[key] = true;
+        } else if (value === 'false') {
+          data[key] = false;
+        } else if (value === 'null') {
+          data[key] = null;
+        } else if (!isNaN(value) && !isNaN(parseFloat(value))) {
+          data[key] = parseFloat(value);
+        } else {
+          data[key] = value;
+        }
+      }
+    }
+  });
+  
+  return data;
+}
+
+function switchBodyEditorMode() {
+  const mode = document.getElementById('bodyEditorMode').value;
+  const jsonEditor = document.getElementById('requestBody');
+  const keyValueEditor = document.getElementById('requestBodyKvEditor');
+  
+  if (mode === 'json') {
+    if (keyValueEditor.style.display !== 'none') {
+      const keyValueData = getRequestBuilderKeyValueData();
+      if (Object.keys(keyValueData).length > 0) {
+        jsonEditor.value = JSON.stringify(keyValueData, null, 2);
+      }
+    }
+    
+    jsonEditor.style.display = 'block';
+    keyValueEditor.style.display = 'none';
+  } else {
+    try {
+      const jsonData = JSON.parse(jsonEditor.value || '{}');
+      populateRequestBuilderKeyValueEditor(jsonData);
+    } catch (e) {
+      populateRequestBuilderKeyValueEditor({});
+    }
+    
+    jsonEditor.style.display = 'none';
+    keyValueEditor.style.display = 'block';
+  }
+}
+
+function switchTryItOutBodyEditorMode(jsonEditorId, keyValueEditorId) {
+  const selectElement = document.getElementById(`bodyEditorMode-${jsonEditorId.replace('request-body-', '')}`);
+  const mode = selectElement.value;
+  const jsonEditor = document.getElementById(jsonEditorId);
+  const keyValueEditor = document.getElementById(keyValueEditorId);
+  
+  if (mode === 'json') {
+    if (keyValueEditor.style.display !== 'none') {
+      const keyValueData = getKeyValueData(keyValueEditorId);
+      if (Object.keys(keyValueData).length > 0) {
+        jsonEditor.value = JSON.stringify(keyValueData, null, 2);
+      }
+    }
+    
+    jsonEditor.style.display = 'block';
+    keyValueEditor.style.display = 'none';
+  } else {
+    try {
+      const jsonData = JSON.parse(jsonEditor.value || '{}');
+      populateKeyValueEditor(keyValueEditorId, jsonData);
+    } catch (e) {
+      populateKeyValueEditor(keyValueEditorId, {});
+    }
+    
+    jsonEditor.style.display = 'none';
+    keyValueEditor.style.display = 'block';
+  }
+}
+
+function populateRequestBuilderKeyValueEditor(data) {
+  const fieldsContainer = document.getElementById('requestBodyKvFields');
+  fieldsContainer.innerHTML = '';
+  
+  Object.entries(data).forEach(([key, value]) => {
+    addRequestBuilderBodyFieldWithValue(key, value);
+  });
+  
+  if (Object.keys(data).length === 0) {
+    addRequestBuilderBodyField();
+  }
+}
+
+function addRequestBuilderBodyField() {
+  addRequestBuilderBodyFieldWithValue('', '');
+}
+
+function addRequestBuilderBodyFieldWithValue(key = '', value = '') {
+  const fieldsContainer = document.getElementById('requestBodyKvFields');
+  
+  const fieldRow = document.createElement('div');
+  fieldRow.className = 'kv-field-row';
+  
+  let valueStr = value;
+  if (typeof value === 'object' && value !== null) {
+    valueStr = JSON.stringify(value);
+  } else if (typeof value !== 'string') {
+    valueStr = String(value);
+  }
+  
+  fieldRow.innerHTML = `
+    <input type="text" placeholder="Field name" value="${key}" class="header-input" style="flex: 1; margin-right: 8px;">
+    <input type="text" placeholder="Field value" value="${valueStr}" class="header-input" style="flex: 2; margin-right: 8px;">
+    <button type="button" class="kv-remove-btn" onclick="removeRequestBuilderBodyField(this)">&times;</button>
+  `;
+  
+  fieldsContainer.appendChild(fieldRow);
+}
+
+function removeRequestBuilderBodyField(button) {
+  button.parentElement.remove();
+}
+
+function getRequestBuilderKeyValueData() {
+  const fieldsContainer = document.getElementById('requestBodyKvFields');
+  const data = {};
+  
+  Array.from(fieldsContainer.children).forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const key = inputs[0].value.trim();
+    const value = inputs[1].value.trim();
+    
+    if (key) {
+      try {
+        data[key] = JSON.parse(value);
+      } catch (e) {
+        if (value === 'true') {
+          data[key] = true;
+        } else if (value === 'false') {
+          data[key] = false;
+        } else if (value === 'null') {
+          data[key] = null;
+        } else if (!isNaN(value) && !isNaN(parseFloat(value))) {
+          data[key] = parseFloat(value);
+        } else {
+          data[key] = value;
+        }
+      }
+    }
+  });
+  
+  return data;
+}
+
 function updateHeader(index, field, value) {
   requestHeaders[index][field] = value
 }
@@ -325,6 +782,7 @@ async function sendRequest() {
   const url = document.getElementById("requestUrl").value
   const body = document.getElementById("requestBody").value
   const sendBtn = document.getElementById("sendRequestBtn")
+  const bodyEditorMode = document.getElementById("bodyEditorMode").value
 
   sendBtn.textContent = "Sending..."
   sendBtn.disabled = true
@@ -346,8 +804,21 @@ async function sendRequest() {
       headers,
     }
 
-    if (method !== "GET" && body) {
-      options.body = body
+    if (method !== "GET") {
+      let requestBodyContent = '';
+      
+      if (bodyEditorMode === 'keyvalue') {
+        const keyValueData = getRequestBuilderKeyValueData();
+        if (Object.keys(keyValueData).length > 0) {
+          requestBodyContent = JSON.stringify(keyValueData);
+        }
+      } else if (body) {
+        requestBodyContent = body;
+      }
+      
+      if (requestBodyContent) {
+        options.body = requestBodyContent;
+      }
     }
 
     const response = await fetch(url, options)

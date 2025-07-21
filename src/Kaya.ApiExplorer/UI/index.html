@@ -121,8 +121,20 @@
                     </div>
 
                     <div class="tab-content" id="body-tab">
-                        <h4>Request Body</h4>
-                        <textarea id="requestBody" placeholder="Enter request body (JSON, XML, etc.)" class="body-textarea"></textarea>
+                        <div class="tab-header">
+                            <h4>Request Body</h4>
+                            <div class="editor-mode-dropdown">
+                                <select id="bodyEditorMode" class="method-select" onchange="switchBodyEditorMode()">
+                                    <option value="json">JSON Editor</option>
+                                    <option value="keyvalue">Key-Value Editor</option>
+                                </select>
+                            </div>
+                        </div>
+                        <textarea id="requestBody" placeholder="Enter request body (JSON, XML, etc.)" class="body-textarea request-body-editor active"></textarea>
+                        <div id="requestBodyKvEditor" class="request-body-kv-editor" style="display: none;">
+                            <div id="requestBodyKvFields" class="kv-fields-container"></div>
+                            <button type="button" class="btn btn-secondary" style="margin-top: 8px;" onclick="addRequestBuilderBodyField()">Add Field</button>
+                        </div>
                     </div>
 
                     <div class="tab-content" id="response-tab">

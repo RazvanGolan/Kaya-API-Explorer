@@ -26,6 +26,7 @@ public class ApiParameter
     public bool Required { get; set; }
     public string Description { get; set; } = string.Empty;
     public object? DefaultValue { get; set; }
+    public ApiSchema? Schema { get; set; } // For complex types
 }
 
 public class ApiRequestBody
@@ -42,12 +43,26 @@ public class ApiResponse
     public Dictionary<int, string> StatusCodes { get; set; } = new();
 }
 
+public class ApiSchema
+{
+    public string Type { get; set; } = string.Empty;
+    public Dictionary<string, ApiProperty> Properties { get; set; } = [];
+    public List<string> Required { get; set; } = [];
+    public string Example { get; set; } = string.Empty;
+}
+
+public class ApiProperty
+{
+    public string Type { get; set; } = string.Empty;
+    public bool Required { get; set; }
+    public object? DefaultValue { get; set; }
+    public ApiSchema? NestedSchema { get; set; } // For nested complex types
+}
+
 public class ApiDocumentation
 {
     public string Title { get; set; } = "API Documentation";
     public string Version { get; set; } = "1.0.0";
     public string Description { get; set; } = string.Empty;
     public List<ApiController> Controllers { get; set; } = [];
-    public List<ApiEndpoint> Endpoints { get; set; } = []; // Keep for backward compatibility
-    public Dictionary<string, object> Schemas { get; set; } = [];
 }

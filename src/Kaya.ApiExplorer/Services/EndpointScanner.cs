@@ -124,11 +124,16 @@ public class EndpointScanner : IEndpointScanner
 
         if (bodyParam == null) return null;
 
+        var typeName = GetFriendlyTypeName(bodyParam.ParameterType);
+        var schemas = new Dictionary<string, ApiSchema>();
+        var processedTypes = new HashSet<Type>();
+        var example = GenerateExampleJson(bodyParam.ParameterType, schemas, processedTypes);
+
         return new ApiRequestBody
         {
-            Type = GetFriendlyTypeName(bodyParam.ParameterType),
+            Type = typeName,
             Description = $"Request body containing {bodyParam.Name} data",
-            Example = GenerateExampleJson(bodyParam.ParameterType)
+            Example = example
         };
     }
 
@@ -176,18 +181,169 @@ public class EndpointScanner : IEndpointScanner
         };
     }
 
-    // TODO: Enhance this to generate more realistic examples based on type
-    private static string GenerateExampleJson(Type type)
+    // Enhanced to generate more realistic examples based on type and generate schemas
+    private static string GenerateExampleJson(Type type, Dictionary<string, ApiSchema> schemas, HashSet<Type> processedTypes)
     {
-        // Simple example generation - could be enhanced
         if (type == typeof(string)) return "\"string value\"";
         if (type == typeof(int)) return "123";
         if (type == typeof(bool)) return "true";
         if (type == typeof(DateTime)) return "\"2023-07-13T10:30:00Z\"";
         if (type == typeof(Guid)) return "\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"";
+        if (type == typeof(decimal) || type == typeof(double) || type == typeof(float)) return "12.34";
+        
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType();
+            if (elementType != null)
+            {
+                var elementExample = GenerateExampleJson(elementType, schemas, processedTypes);
+                return $"[{elementExample}]";
+            }
+        }
+        
+        if (type.IsGenericType)
+        {
+            var genericTypeDefinition = type.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(List<>) || 
+                genericTypeDefinition == typeof(IEnumerable<>) ||
+                genericTypeDefinition == typeof(ICollection<>) ||
+                genericTypeDefinition == typeof(IList<>))
+            {
+                var elementType = type.GetGenericArguments().FirstOrDefault();
+                if (elementType != null)
+                {
+                    var elementExample = GenerateExampleJson(elementType, schemas, processedTypes);
+                    return $"[{elementExample}]";
+                }
+            }
+        }
+        
+        if (IsComplexType(type))
+        {
+            GenerateSchemaForType(type, schemas, processedTypes);
+            return GenerateExampleFromSchema(type, schemas);
+        }
 
-        // For complex objects, return a placeholder
-        return "{\n  // Object properties\n}";
+        return "{}";
+    }
+
+    private static bool IsComplexType(Type type)
+    {
+        return !type.IsPrimitive && 
+               type != typeof(string) && 
+               type != typeof(DateTime) && 
+               type != typeof(Guid) && 
+               type != typeof(decimal) && 
+               type != typeof(double) && 
+               type != typeof(float) &&
+               !type.IsEnum &&
+               Nullable.GetUnderlyingType(type) == null;
+    }
+
+    private static ApiSchema? GenerateSchemaForType(Type type)
+    {
+        var schemas = new Dictionary<string, ApiSchema>();
+        var processedTypes = new HashSet<Type>();
+        
+        GenerateSchemaForType(type, schemas, processedTypes);
+        
+        var typeName = GetFriendlyTypeName(type);
+        return schemas.ContainsKey(typeName) ? schemas[typeName] : null;
+    }
+
+    private static void GenerateSchemaForType(Type type, Dictionary<string, ApiSchema> schemas, HashSet<Type> processedTypes)
+    {
+        if (processedTypes.Contains(type) || schemas.ContainsKey(type.Name))
+            return;
+
+        processedTypes.Add(type);
+
+        var schema = new ApiSchema
+        {
+            Type = "object"
+        };
+
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p is { CanRead: true, CanWrite: true });
+
+        foreach (var property in properties)
+        {
+            var propertyType = property.PropertyType;
+            var isRequired = !IsNullableType(propertyType);
+            
+            if (IsComplexType(propertyType))
+            {
+                GenerateSchemaForType(propertyType, schemas, processedTypes);
+            }
+            
+            if (isRequired)
+            {
+                schema.Required.Add(property.Name);
+            }
+        }
+
+        schema.Example = GenerateExampleFromSchema(type, schemas);
+        schemas[type.Name] = schema;
+    }
+
+    private static bool IsNullableType(Type type)
+    {
+        return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
+    }
+
+    // TODO: see if this can be enhanced
+    private static string GenerateExampleFromSchema(Type type, Dictionary<string, ApiSchema> schemas)
+    {
+        var example = new Dictionary<string, object>();
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead && p.CanWrite);
+
+        foreach (var property in properties)
+        {
+            var propertyType = property.PropertyType;
+            var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+            if (underlyingType == typeof(string))
+            {
+                // TODO: add more realistic examples based on property name like id, email, etc.
+                example[property.Name] = property.Name.ToLower().Contains("email") ? "email@example.com" : "sample text";
+            }
+            else if (underlyingType == typeof(int) || underlyingType == typeof(long))
+            {
+                example[property.Name] = 0;
+            }
+            else if (underlyingType == typeof(bool))
+            {
+                example[property.Name] = true;
+            }
+            else if (underlyingType == typeof(DateTime))
+            {
+                example[property.Name] = DateTime.UtcNow;
+            }
+            else if (underlyingType == typeof(Guid))
+            {
+                example[property.Name] = Guid.NewGuid();
+            }
+            else if (underlyingType == typeof(decimal) || underlyingType == typeof(double) || underlyingType == typeof(float))
+            {
+                example[property.Name] = 12.34;
+            }
+            else if (underlyingType.IsEnum)
+            {
+                var enumValues = Enum.GetNames(underlyingType);
+                example[property.Name] = enumValues.FirstOrDefault() ?? "EnumValue";
+            }
+            else
+            {
+                example[property.Name] = "{}";
+            }
+        }
+
+        return System.Text.Json.JsonSerializer.Serialize(example, new System.Text.Json.JsonSerializerOptions 
+        { 
+            WriteIndented = true,
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        });
     }
 
     private static List<string> GetHttpMethods(MethodInfo method)
@@ -206,7 +362,6 @@ public class EndpointScanner : IEndpointScanner
             }
         }
 
-        // If no HTTP method attributes, assume GET
         if (httpMethods.Count is 0)
         {
             httpMethods.Add("GET");
@@ -229,9 +384,9 @@ public class EndpointScanner : IEndpointScanner
             return httpAttr.Template;
         }
 
-        return method.Name.ToLower();
+        return string.Empty;
     }
-
+    
     private static string CombineRoutes(string controllerRoute, string methodRoute)
     {
         if (string.IsNullOrEmpty(methodRoute))
@@ -254,22 +409,29 @@ public class EndpointScanner : IEndpointScanner
         return $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
-    // TODO: Enhance this to handle more complex parameter types like classes, records, etc.
     private static List<ApiParameter> GetMethodParameters(MethodInfo method)
     {
         var parameters = new List<ApiParameter>();
 
         foreach (var param in method.GetParameters())
         {
+            var parameterSource = DetermineParameterSource(param);
+            var typeName = GetFriendlyTypeName(param.ParameterType);
+            
             var apiParam = new ApiParameter
             {
                 Name = param.Name ?? "unknown",
-                Type = GetFriendlyTypeName(param.ParameterType),
+                Type = typeName,
                 Required = !param.HasDefaultValue && !param.ParameterType.IsValueType ||
                           (param.ParameterType.IsValueType && Nullable.GetUnderlyingType(param.ParameterType) == null),
                 DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
-                Source = DetermineParameterSource(param)
+                Source = parameterSource
             };
+
+            if (IsComplexType(param.ParameterType))
+            {
+                apiParam.Schema = GenerateSchemaForType(param.ParameterType);
+            }
 
             parameters.Add(apiParam);
         }
