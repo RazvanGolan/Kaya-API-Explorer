@@ -47,6 +47,21 @@ function getStatusClass(code) {
   return "status-default"
 }
 
+function doesEndpointMatchQuery(endpoint, query) {
+  if (!query || !query.trim()) return true
+  
+  const lowerQuery = query.toLowerCase()
+  const endpointPath = endpoint.path.toLowerCase()
+  const endpointMethod = endpoint.httpMethodType.toLowerCase()
+  const endpointName = endpoint.methodName.toLowerCase()
+  const endpointDescription = endpoint.description.toLowerCase()
+  
+  return endpointPath.includes(lowerQuery) || 
+         endpointMethod.includes(lowerQuery) || 
+         endpointName.includes(lowerQuery) || 
+         endpointDescription.includes(lowerQuery)
+}
+
 function renderControllers() {
   const container = document.getElementById("controllersList")
   container.innerHTML = ""
@@ -80,8 +95,18 @@ function renderEndpoints() {
   const container = document.getElementById("endpointsList")
   container.innerHTML = ""
 
-  controller.endpoints.forEach((endpoint, index) => {
-    const endpointId = `${selectedController}-${index}`
+  const query = document.getElementById("searchInput").value.toLowerCase().trim()
+  
+  let endpointsToShow = controller.endpoints
+  if (query) {
+    endpointsToShow = controller.endpoints.filter(endpoint => 
+      doesEndpointMatchQuery(endpoint, query)
+    )
+  }
+
+  endpointsToShow.forEach((endpoint) => {
+    const originalIndex = controller.endpoints.indexOf(endpoint)
+    const endpointId = `${selectedController}-${originalIndex}`
     const isExpanded = expandedEndpoints.includes(endpointId)
 
     const card = document.createElement("div")
@@ -104,12 +129,16 @@ function renderEndpoints() {
                 </div>
             </div>
             <div class="endpoint-content ${isExpanded ? "expanded" : ""}" id="content-${endpointId}">
-                ${renderEndpointTabs(endpoint, endpointId, index)}
+                ${renderEndpointTabs(endpoint, endpointId, originalIndex)}
             </div>
         `
 
     container.appendChild(card)
   })
+  
+  if (query && endpointsToShow.length === 0) {
+    container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 2rem;">No endpoints match your search query.</p>'
+  }
 }
 
 function renderEndpointTabs(endpoint, endpointId, index) {
@@ -910,21 +939,82 @@ function clearAuthToken() {
   document.getElementById("authModal").classList.remove("show")
 }
 
-// Search functionality
+function clearSearch() {
+  const searchInput = document.getElementById("searchInput")
+  const clearBtn = document.getElementById("clearSearchBtn")
+  
+  searchInput.value = ""
+  clearBtn.style.display = "none"
+  filterControllers() 
+}
+
 function filterControllers() {
   const query = document.getElementById("searchInput").value.toLowerCase()
+  const clearBtn = document.getElementById("clearSearchBtn")
   const cards = document.querySelectorAll(".controller-card")
+  let visibleControllers = []
+
+  if (query.trim()) {
+    clearBtn.style.display = "flex"
+  } else {
+    clearBtn.style.display = "none"
+  }
 
   cards.forEach((card) => {
+    const controllerName = card.querySelector("h3").textContent
+    const controller = controllers.find(c => c.name === controllerName)
+    
+    if (!controller) {
+      card.style.display = "none"
+      return
+    }
+
+    if (!query.trim()) {
+      card.style.display = "block"
+      visibleControllers.push(controller)
+      return
+    }
+
+    const hasMatchingEndpoint = controller.endpoints.some(endpoint => 
+      doesEndpointMatchQuery(endpoint, query)
+    )
+
     const title = card.querySelector("h3").textContent.toLowerCase()
     const description = card.querySelector("p").textContent.toLowerCase()
+    const hasMatchingController = title.includes(query) || description.includes(query)
 
-    if (title.includes(query) || description.includes(query)) {
+    if (hasMatchingEndpoint || hasMatchingController) {
       card.style.display = "block"
+      visibleControllers.push(controller)
     } else {
       card.style.display = "none"
     }
   })
+  
+  if (query.trim()) {
+    if (visibleControllers.length === 1) {
+      if (selectedController !== visibleControllers[0].name) {
+        selectedController = visibleControllers[0].name
+        expandedEndpoints = []
+        renderControllers() 
+      }
+    } else if (visibleControllers.length > 1) {
+      const isCurrentSelectionVisible = visibleControllers.some(c => c.name === selectedController)
+      if (!isCurrentSelectionVisible && visibleControllers.length > 0) {
+        selectedController = visibleControllers[0].name
+        expandedEndpoints = []
+        renderControllers() 
+      }
+    }
+  } else {
+    if (!selectedController && controllers.length > 0) {
+      selectedController = controllers[0].name
+      expandedEndpoints = []
+      renderControllers()
+    }
+  }
+  
+  renderEndpoints()
 }
 
 function showModal(modalId) {
@@ -956,6 +1046,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderHeaders()
 
   document.getElementById("searchInput").addEventListener("input", filterControllers)
+  
+  // Also add event listener to show/hide clear button on input
+  document.getElementById("searchInput").addEventListener("input", function() {
+    const clearBtn = document.getElementById("clearSearchBtn")
+    if (this.value.trim()) {
+      clearBtn.style.display = "flex"
+    } else {
+      clearBtn.style.display = "none"
+    }
+  })
 
   document.getElementById("requestBuilderBtn").addEventListener("click", () => showModal("requestBuilderModal"))
   document.getElementById("authorizeBtn").addEventListener("click", () => showModal("authModal"))

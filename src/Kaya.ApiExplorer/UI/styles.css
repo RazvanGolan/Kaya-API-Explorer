@@ -73,7 +73,7 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 40px;
+  padding: 8px 36px 8px 40px;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
@@ -84,6 +84,32 @@ body {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  color: #374151;
+  background-color: #f3f4f6;
+}
+
+.clear-search-btn:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .sidebar-content {
