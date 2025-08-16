@@ -79,13 +79,14 @@ public class EndpointScanner : IEndpointScanner
             
             foreach (var httpMethod in httpMethods)
             {
+                var fullPath = CombineRoutes(controllerRoute, methodRoute);
                 var endpoint = new ApiEndpoint
                 {
-                    Path = CombineRoutes(controllerRoute, methodRoute),
+                    Path = fullPath,
                     HttpMethodType = httpMethod,
                     MethodName = method.Name,
                     Description = GetMethodDescription(method),
-                    Parameters = GetMethodParameters(method),
+                    Parameters = GetMethodParameters(method, fullPath),
                     RequestBody = GetMethodRequestBody(method),
                     Responses = GetMethodResponses(method),
                 };
@@ -409,13 +410,13 @@ public class EndpointScanner : IEndpointScanner
         return $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
-    private static List<ApiParameter> GetMethodParameters(MethodInfo method)
+    private static List<ApiParameter> GetMethodParameters(MethodInfo method, string routePath)
     {
         var parameters = new List<ApiParameter>();
 
         foreach (var param in method.GetParameters())
         {
-            var parameterSource = DetermineParameterSource(param);
+            var parameterSource = DetermineParameterSource(param, routePath);
             var typeName = GetFriendlyTypeName(param.ParameterType);
             
             var apiParam = new ApiParameter
@@ -439,7 +440,7 @@ public class EndpointScanner : IEndpointScanner
         return parameters;
     }
 
-    private static string DetermineParameterSource(ParameterInfo param)
+    private static string DetermineParameterSource(ParameterInfo param, string routePath)
     {
         var fromBodyAttr = param.GetCustomAttribute<FromBodyAttribute>();
         if (fromBodyAttr != null) return "Body";
@@ -452,6 +453,11 @@ public class EndpointScanner : IEndpointScanner
 
         var fromHeaderAttr = param.GetCustomAttribute<FromHeaderAttribute>();
         if (fromHeaderAttr != null) return "Header";
+
+        if (!string.IsNullOrEmpty(param.Name) && routePath.Contains($"{{{param.Name}}}"))
+        {
+            return "Route";
+        }
 
         // Default logic based on type
         if (param.ParameterType.IsPrimitive || param.ParameterType == typeof(string) || 

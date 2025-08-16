@@ -7,10 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Option 1: Simple convenience method - Sidecar mode
-builder.Services.AddKayaApiExplorer(port: 9090);
+// builder.Services.AddKayaApiExplorer(port: 9090);
 
 // Option 2: Simple convenience method - Middleware mode  
-// builder.Services.AddKayaApiExplorer(routePrefix: "/api-explorer");
+builder.Services.AddKayaApiExplorer(routePrefix: "/api-explorer");
 
 // Option 3: Full configuration
 /*

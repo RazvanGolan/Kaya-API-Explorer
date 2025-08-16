@@ -202,8 +202,9 @@ function renderResponses(endpoint) {
 }
 
 function renderTryItOut(endpoint, index) {
-  const parametersSection = renderTryItOutParameters(endpoint);
-  const requestBodySection = renderTryItOutRequestBody(endpoint);
+  const endpointIdentifier = `${selectedController}-${index}`;
+  const parametersSection = renderTryItOutParameters(endpoint, endpointIdentifier);
+  const requestBodySection = renderTryItOutRequestBody(endpoint, endpointIdentifier);
 
   return `
         <div>
@@ -215,14 +216,14 @@ function renderTryItOut(endpoint, index) {
                 </svg>
                 Execute Request
             </button>
-            <div id="tryout-response-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}" class="response-container" style="margin-top: 16px; display: none;">
+            <div id="tryout-response-${endpointIdentifier}" class="response-container" style="margin-top: 16px; display: none;">
                 <!-- Response will be displayed here -->
             </div>
         </div>
     `
 }
 
-function renderTryItOutParameters(endpoint) {
+function renderTryItOutParameters(endpoint, endpointIdentifier) {
   if (!endpoint.parameters || endpoint.parameters.length === 0) {
     return '';
   }
@@ -240,7 +241,7 @@ function renderTryItOutParameters(endpoint) {
         ${queryParams.map(param => `
           <div class="tryout-parameter-row">
             <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
-            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
             <span class="tryout-parameter-type">${param.type}</span>
           </div>
         `).join('')}
@@ -255,7 +256,7 @@ function renderTryItOutParameters(endpoint) {
         ${routeParams.map(param => `
           <div class="tryout-parameter-row">
             <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
-            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
             <span class="tryout-parameter-type">${param.type}</span>
           </div>
         `).join('')}
@@ -270,7 +271,7 @@ function renderTryItOutParameters(endpoint) {
         ${headerParams.map(param => `
           <div class="tryout-parameter-row">
             <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
-            <input type="text" id="param-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
             <span class="tryout-parameter-type">${param.type}</span>
           </div>
         `).join('')}
@@ -281,19 +282,19 @@ function renderTryItOutParameters(endpoint) {
   return parametersHtml;
 }
 
-function renderTryItOutRequestBody(endpoint) {
+function renderTryItOutRequestBody(endpoint, endpointIdentifier) {
   if (!endpoint.requestBody) {
     return '';
   }
 
-  const bodyId = `request-body-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
-  const keyValueId = `request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const bodyId = `request-body-${endpointIdentifier}`;
+  const keyValueId = `request-body-kv-${endpointIdentifier}`;
 
   return `
     <div class="tryout-parameter-group">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <h4>Request Body <span class="badge">${endpoint.requestBody.type}</span></h4>
-        <select id="bodyEditorMode-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}" class="method-select" onchange="switchTryItOutBodyEditorMode('${bodyId}', '${keyValueId}')">
+        <select id="bodyEditorMode-${endpointIdentifier}" class="method-select" onchange="switchTryItOutBodyEditorMode('${bodyId}', '${keyValueId}')">
           <option value="json">JSON Editor</option>
           <option value="keyvalue">Key-Value Editor</option>
         </select>
@@ -393,12 +394,17 @@ async function executeEndpointById(controllerName, endpointIndex) {
     return;
   }
   
-  await executeEndpoint(endpoint);
+  const endpointIdentifier = `${controllerName}-${endpointIndex}`;
+  await executeEndpoint(endpoint, endpointIdentifier);
 }
 
-async function executeEndpoint(endpoint) {
-  const responseContainerId = `tryout-response-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`;
+async function executeEndpoint(endpoint, endpointIdentifier) {
+  const responseContainerId = `tryout-response-${endpointIdentifier}`;
   const responseContainer = document.getElementById(responseContainerId);
+  
+  if (!responseContainer) {
+    return;
+  }
   
   responseContainer.style.display = 'block';
   responseContainer.innerHTML = '<p>Executing request...</p>';
@@ -408,7 +414,7 @@ async function executeEndpoint(endpoint) {
     const pathParams = endpoint.parameters?.filter(p => p.source === "Route") || [];
 
     pathParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${param.name}`)?.value || '';
+      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value || '';
       if (paramValue) {
         finalUrl = finalUrl.replace(`{${param.name}}`, paramValue);
       }
@@ -417,7 +423,7 @@ async function executeEndpoint(endpoint) {
     const queryString = new URLSearchParams();
     
     queryParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${param.name}`)?.value;
+      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
       if (paramValue) {
         queryString.append(param.name, paramValue);
       }
@@ -431,7 +437,7 @@ async function executeEndpoint(endpoint) {
     
     const headerParams = endpoint.parameters?.filter(p => p.source === "Header") || [];
     headerParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${param.name}`)?.value;
+      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
       if (paramValue) {
         headers[param.name] = paramValue;
       }
@@ -447,13 +453,13 @@ async function executeEndpoint(endpoint) {
     };
 
     if (endpoint.httpMethodType !== 'GET' && endpoint.requestBody) {
-      const bodyTextarea = document.getElementById(`request-body-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
-      const keyValueEditor = document.getElementById(`request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
+      const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
       
       let requestBodyContent = '';
       
       if (keyValueEditor && keyValueEditor.style.display !== 'none') {
-        const keyValueData = getKeyValueData(`request-body-kv-${endpoint.path.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
         if (Object.keys(keyValueData).length > 0) {
           requestBodyContent = JSON.stringify(keyValueData);
         }
@@ -484,7 +490,8 @@ async function executeEndpoint(endpoint) {
     }
 
     const statusClass = response.ok ? 'status-2xx' : 'status-4xx';
-    responseContainer.innerHTML = `
+    
+    const responseHtml = `
       <div class="response-success" style="margin-top: 12px;">
         <div class="response-status" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <h5>Response</h5>
@@ -492,7 +499,7 @@ async function executeEndpoint(endpoint) {
         </div>
         <div class="response-headers" style="margin-bottom: 12px;">
           <h6>Response Headers</h6>
-          <pre style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px;">${Array.from(response.headers.entries()).map(([key, value]) => `${key}: ${value}`).join('\\n')}</pre>
+          <pre style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">${Array.from(response.headers.entries()).map(([key, value]) => `${key}: ${value}`).join('\\n')}</pre>
         </div>
         <div class="response-body">
           <h6>Response Body</h6>
@@ -508,6 +515,8 @@ async function executeEndpoint(endpoint) {
         </div>
       </div>
     `;
+    
+    responseContainer.innerHTML = responseHtml;
 
   } catch (error) {
     responseContainer.innerHTML = `
@@ -666,7 +675,8 @@ function switchBodyEditorMode() {
 }
 
 function switchTryItOutBodyEditorMode(jsonEditorId, keyValueEditorId) {
-  const selectElement = document.getElementById(`bodyEditorMode-${jsonEditorId.replace('request-body-', '')}`);
+  const endpointIdentifier = jsonEditorId.replace('request-body-', '');
+  const selectElement = document.getElementById(`bodyEditorMode-${endpointIdentifier}`);
   const mode = selectElement.value;
   const jsonEditor = document.getElementById(jsonEditorId);
   const keyValueEditor = document.getElementById(keyValueEditorId);

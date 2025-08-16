@@ -178,9 +178,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Current TODOs
 
-- [ ] **Execution Option**: Add "Try It Out" functionality for every endpoint
+- [x] **Execution Option**: Add "Try It Out" functionality for every endpoint
 - [ ] **Multiple Authentication Options**: Support various authentication schemes (Bearer, API Key, OAuth, etc.)
-- [ ] **Request/Response Improvements**: Better handling of complex types, classes, and object models
+- [x] **Request/Response Improvements**: Better handling of complex types, classes, and object models
 - [ ] **Search Functionality**: Add search by endpoint name functionality in the UI
 - [ ] **Controller Documentation**: Read and display controller XML documentation if available
 
@@ -193,5 +193,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [ ] Dark mode support
 - [ ] Performance monitoring integration
 - [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
+- [ ] Debuggings SignalR
+- [ ] Add GraphQL support
 
 
