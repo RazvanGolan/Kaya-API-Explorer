@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text;
 using Kaya.ApiExplorer.Configuration;
 
 namespace Kaya.ApiExplorer.Services;
@@ -10,8 +11,6 @@ public interface IUIService
 
 public class UIService(KayaApiExplorerOptions options) : IUIService
 {
-    private readonly KayaApiExplorerOptions _options = options;
-
     public async Task<string> GetUIAsync()
     {
         try
@@ -22,13 +21,17 @@ public class UIService(KayaApiExplorerOptions options) : IUIService
             var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.index.html");
             var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
             var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.script.js");
+            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.icon.svg");
 
             // Inject theme configuration into the HTML
             var themeScript = GenerateThemeScript();
-            
+
+            var svgBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(favIconContent));
+
             var finalHtml = htmlContent
                 .Replace("<link rel=\"stylesheet\" href=\"styles.css\">", $"<style>{cssContent}</style>")
-                .Replace("<script src=\"script.js\"></script>", $"{themeScript}<script>{jsContent}</script>");
+                .Replace("<script src=\"script.js\"></script>", $"{themeScript}<script>{jsContent}</script>")
+                .Replace("<link rel=\"icon\" type=\"image/svg+xml\" href=\"icon.svg\">", $"<link rel=\"icon\" type=\"image/svg+xml\" href=\"data:image/svg+xml;base64,{svgBase64}\">");
 
             return finalHtml;
         }
@@ -40,7 +43,7 @@ public class UIService(KayaApiExplorerOptions options) : IUIService
 
     private string GenerateThemeScript()
     {
-        var defaultTheme = _options.Middleware.DefaultTheme?.ToLower() ?? "light";
+        var defaultTheme = options.Middleware.DefaultTheme?.ToLower() ?? "light";
         
         if (defaultTheme != "light" && defaultTheme != "dark")
         {
