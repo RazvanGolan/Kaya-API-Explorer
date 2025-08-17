@@ -4,6 +4,50 @@ let expandedEndpoints = []
 let authToken = ""
 const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
+let currentTheme = getInitialTheme()
+
+function getInitialTheme() {
+  console.log(window.KayaApiExplorerConfig)
+  if (window.KayaApiExplorerConfig && window.KayaApiExplorerConfig.defaultTheme) {
+    const serverTheme = window.KayaApiExplorerConfig.defaultTheme.toLowerCase()
+    if (serverTheme === 'light' || serverTheme === 'dark') {
+      const userTheme = localStorage.getItem('theme')
+      return userTheme || serverTheme
+    }
+  }
+  
+  return localStorage.getItem('theme') || 'light'
+}
+
+function initializeTheme() {
+  document.documentElement.setAttribute('data-theme', currentTheme)
+  updateThemeButton()
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light'
+  document.documentElement.setAttribute('data-theme', currentTheme)
+  localStorage.setItem('theme', currentTheme)
+  updateThemeButton()
+}
+
+function updateThemeButton() {
+  const themeBtn = document.getElementById('themeToggleBtn')
+  const sunIcon = themeBtn.querySelector('.sun-icon')
+  const moonIcon = themeBtn.querySelector('.moon-icon')
+  const themeText = themeBtn.querySelector('.theme-text')
+  
+  if (currentTheme === 'dark') {
+    sunIcon.style.display = 'none'
+    moonIcon.style.display = 'block'
+    themeText.textContent = 'Light'
+  } else {
+    sunIcon.style.display = 'block'
+    moonIcon.style.display = 'none'
+    themeText.textContent = 'Dark'
+  }
+}
+
 async function loadApiData() {
   try {
     const response = await fetch('api-explorer/api-docs');
@@ -528,7 +572,7 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
         </div>
         <div class="response-headers" style="margin-bottom: 12px;">
           <h6>Response Headers</h6>
-          <pre style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; overflow-x: auto;">${Array.from(response.headers.entries()).map(([key, value]) => `${key}: ${value}`).join('\\n')}</pre>
+          <pre class="response-headers-pre">${Array.from(response.headers.entries()).map(([key, value]) => `${key}: ${value}`).join('\\n')}</pre>
         </div>
         <div class="response-body">
           <h6>Response Body</h6>
@@ -539,7 +583,7 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
-            <pre style="background: #f8f9fa; padding: 12px; border-radius: 4px; white-space: pre-wrap; margin: 0;">${typeof responseData === 'object' ? JSON.stringify(responseData, null, 2) : responseData}</pre>
+            <pre class="response-body-pre">${typeof responseData === 'object' ? JSON.stringify(responseData, null, 2) : responseData}</pre>
           </div>
         </div>
       </div>
@@ -1041,6 +1085,9 @@ function switchRequestTab(tabName) {
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async () => {
+  // Initialize theme before loading other content
+  initializeTheme()
+  
   await loadApiData()
   
   renderHeaders()
@@ -1057,6 +1104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   })
 
+  document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme)
   document.getElementById("requestBuilderBtn").addEventListener("click", () => showModal("requestBuilderModal"))
   document.getElementById("authorizeBtn").addEventListener("click", () => showModal("authModal"))
   document.getElementById("exportBtn").addEventListener("click", exportOpenAPI)

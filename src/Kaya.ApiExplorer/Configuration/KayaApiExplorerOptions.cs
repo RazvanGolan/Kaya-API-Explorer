@@ -18,4 +18,5 @@ public class SidecarOptions
 public class MiddlewareOptions
 {
     public string RoutePrefix { get; set; } = "/api-explorer";
+    public string DefaultTheme { get; set; } = "light";
 }

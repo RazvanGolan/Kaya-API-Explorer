@@ -190,7 +190,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [ ] Export to OpenAPI/Swagger format
 - [ ] Request/response examples
 - [ ] Model schema visualization
-- [ ] Dark mode support
+- [x] Dark mode support
 - [ ] Performance monitoring integration
 - [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
 - [ ] Debuggings SignalR

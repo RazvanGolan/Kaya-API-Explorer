@@ -1,4 +1,5 @@
 using System.Reflection;
+using Kaya.ApiExplorer.Configuration;
 
 namespace Kaya.ApiExplorer.Services;
 
@@ -7,8 +8,10 @@ public interface IUIService
     Task<string> GetUIAsync();
 }
 
-public class UIService : IUIService
+public class UIService(KayaApiExplorerOptions options) : IUIService
 {
+    private readonly KayaApiExplorerOptions _options = options;
+
     public async Task<string> GetUIAsync()
     {
         try
@@ -20,9 +23,12 @@ public class UIService : IUIService
             var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
             var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.script.js");
 
+            // Inject theme configuration into the HTML
+            var themeScript = GenerateThemeScript();
+            
             var finalHtml = htmlContent
                 .Replace("<link rel=\"stylesheet\" href=\"styles.css\">", $"<style>{cssContent}</style>")
-                .Replace("<script src=\"script.js\"></script>", $"<script>{jsContent}</script>");
+                .Replace("<script src=\"script.js\"></script>", $"{themeScript}<script>{jsContent}</script>");
 
             return finalHtml;
         }
@@ -30,6 +36,24 @@ public class UIService : IUIService
         {
             throw new InvalidOperationException($"Failed to load UI: {ex.Message}", ex);
         }
+    }
+
+    private string GenerateThemeScript()
+    {
+        var defaultTheme = _options.Middleware.DefaultTheme?.ToLower() ?? "light";
+        
+        if (defaultTheme != "light" && defaultTheme != "dark")
+        {
+            defaultTheme = "light";
+        }
+
+        return $@"
+<script>
+    // Kaya API Explorer Configuration
+    window.KayaApiExplorerConfig = {{
+        defaultTheme: '{defaultTheme}'
+    }};
+</script>";
     }
 
     private static async Task<string> ReadEmbeddedResourceAsync(Assembly assembly, string resourceName)
