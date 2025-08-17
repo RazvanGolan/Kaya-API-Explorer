@@ -179,7 +179,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### Current TODOs
 
 - [x] **Execution Option**: Add "Try It Out" functionality for every endpoint
-- [ ] **Multiple Authentication Options**: Support various authentication schemes (Bearer, API Key, OAuth, etc.)
+- [x] **Multiple Authentication Options**: Support various authentication schemes (Bearer, API Key, OAuth, etc.)
 - [x] **Request/Response Improvements**: Better handling of complex types, classes, and object models
 - [x] **Search Functionality**: Add search by endpoint name functionality in the UI
 - [ ] **Controller Documentation**: Read and display controller XML documentation if available

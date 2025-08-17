@@ -1,7 +1,25 @@
 let controllers = []
 let selectedController = ""
 let expandedEndpoints = []
-let authToken = ""
+
+let authConfig = {
+  type: 'none',
+  bearer: {
+    token: ''
+  },
+  apikey: {
+    name: 'X-API-Key',
+    value: ''
+  },
+  oauth: {
+    clientId: '',
+    authUrl: '',
+    tokenUrl: '',
+    scopes: '',
+    accessToken: ''
+  }
+}
+
 const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
@@ -46,6 +64,231 @@ function updateThemeButton() {
     moonIcon.style.display = 'none'
     themeText.textContent = 'Dark'
   }
+}
+
+function switchAuthType() {
+  const authType = document.getElementById('authType').value
+  authConfig.type = authType
+  
+  document.querySelectorAll('.auth-section').forEach(section => {
+    section.classList.add('hidden')
+  })
+  
+  switch (authType) {
+    case 'none':
+      document.getElementById('authNone').classList.remove('hidden')
+      break
+    case 'bearer':
+      document.getElementById('authBearer').classList.remove('hidden')
+      break
+    case 'apikey':
+      document.getElementById('authApiKey').classList.remove('hidden')
+      break
+    case 'oauth':
+      document.getElementById('authOAuth').classList.remove('hidden')
+      break
+  }
+  
+  updateAuthStatus()
+}
+
+function togglePasswordVisibility(inputId, button) {
+  const input = document.getElementById(inputId)
+  const eyeOpen = button.querySelector('.eye-open')
+  const eyeClosed = button.querySelector('.eye-closed')
+  
+  if (input.type === 'password') {
+    input.type = 'text'
+    eyeOpen.style.display = 'none'
+    eyeClosed.style.display = 'block'
+  } else {
+    input.type = 'password'
+    eyeOpen.style.display = 'block'
+    eyeClosed.style.display = 'none'
+  }
+}
+
+function saveAuthConfiguration() {
+  const authType = document.getElementById('authType').value
+  authConfig.type = authType
+  
+  switch (authType) {
+    case 'none':
+      authConfig.bearer.token = ''
+      authConfig.apikey.value = ''
+      authConfig.oauth.accessToken = ''
+      break
+      
+    case 'bearer':
+      authConfig.bearer.token = document.getElementById('authToken').value.trim()
+      break
+      
+    case 'apikey':
+      authConfig.apikey.name = document.getElementById('apiKeyName').value.trim() || 'X-API-Key'
+      authConfig.apikey.value = document.getElementById('apiKeyValue').value.trim()
+      break
+      
+    case 'oauth':
+      authConfig.oauth.clientId = document.getElementById('oauthClientId').value.trim()
+      authConfig.oauth.authUrl = document.getElementById('oauthAuthUrl').value.trim()
+      authConfig.oauth.tokenUrl = document.getElementById('oauthTokenUrl').value.trim()
+      authConfig.oauth.scopes = document.getElementById('oauthScopes').value.trim()
+      authConfig.oauth.accessToken = document.getElementById('oauthAccessToken').value.trim()
+      break
+  }
+  
+  localStorage.setItem('kayaAuthConfig', JSON.stringify(authConfig))
+  
+  updateAuthStatus()
+  document.getElementById('authModal').classList.remove('show')
+}
+
+function clearAuthConfiguration() {
+  authConfig = {
+    type: 'none',
+    bearer: { token: '' },
+    apikey: { name: 'X-API-Key', value: '' },
+    oauth: { clientId: '', authUrl: '', tokenUrl: '', scopes: '', accessToken: '' }
+  }
+  
+  document.getElementById('authType').value = 'none'
+  document.getElementById('authToken').value = ''
+  document.getElementById('apiKeyName').value = 'X-API-Key'
+  document.getElementById('apiKeyValue').value = ''
+  document.getElementById('oauthClientId').value = ''
+  document.getElementById('oauthAuthUrl').value = ''
+  document.getElementById('oauthTokenUrl').value = ''
+  document.getElementById('oauthScopes').value = ''
+  document.getElementById('oauthAccessToken').value = ''
+  
+  localStorage.removeItem('kayaAuthConfig')
+  
+  switchAuthType()
+  updateAuthStatus()
+  document.getElementById('authModal').classList.remove('show')
+}
+
+function loadAuthConfiguration() {
+  try {
+    const saved = localStorage.getItem('kayaAuthConfig')
+    if (saved) {
+      const config = JSON.parse(saved)
+      authConfig = { ...authConfig, ...config }
+      
+      document.getElementById('authType').value = authConfig.type
+      document.getElementById('authToken').value = authConfig.bearer.token
+      document.getElementById('apiKeyName').value = authConfig.apikey.name
+      document.getElementById('apiKeyValue').value = authConfig.apikey.value
+      document.getElementById('oauthClientId').value = authConfig.oauth.clientId
+      document.getElementById('oauthAuthUrl').value = authConfig.oauth.authUrl
+      document.getElementById('oauthTokenUrl').value = authConfig.oauth.tokenUrl
+      document.getElementById('oauthScopes').value = authConfig.oauth.scopes
+      document.getElementById('oauthAccessToken').value = authConfig.oauth.accessToken
+      
+      switchAuthType()
+      updateAuthStatus()
+    }
+  } catch (error) {
+    console.warn('Failed to load auth configuration:', error)
+  }
+}
+
+function updateAuthStatus() {
+  const statusDiv = document.getElementById('authStatus')
+  const authType = authConfig.type
+  
+  statusDiv.classList.remove('hidden', 'success', 'info', 'warning')
+  
+  switch (authType) {
+    case 'none':
+      statusDiv.classList.add('hidden')
+      break
+      
+    case 'bearer':
+      if (authConfig.bearer.token) {
+        statusDiv.classList.add('success')
+        statusDiv.innerHTML = '<p>✓ JWT Bearer token is configured and will be automatically added to all requests</p>'
+      } else {
+        statusDiv.classList.add('hidden')
+      }
+      break
+      
+    case 'apikey':
+      if (authConfig.apikey.value) {
+        statusDiv.classList.add('success')
+        statusDiv.innerHTML = `<p>✓ API Key (${authConfig.apikey.name}) is configured and will be automatically added to all requests</p>`
+      } else {
+        statusDiv.classList.add('hidden')
+      }
+      break
+      
+    case 'oauth':
+      if (authConfig.oauth.accessToken) {
+        statusDiv.classList.add('success')
+        statusDiv.innerHTML = '<p>✓ OAuth access token is configured and will be automatically added to all requests</p>'
+      } else if (authConfig.oauth.clientId && authConfig.oauth.authUrl) {
+        statusDiv.classList.add('info')
+        statusDiv.innerHTML = '<p>ℹ OAuth configuration saved. Use "Authorize with OAuth" to get an access token</p>'
+      } else {
+        statusDiv.classList.add('hidden')
+      }
+      break
+  }
+}
+
+function getAuthHeaders() {
+  const headers = {}
+  
+  switch (authConfig.type) {
+    case 'bearer':
+      if (authConfig.bearer.token) {
+        headers['Authorization'] = `Bearer ${authConfig.bearer.token}`
+      }
+      break
+      
+    case 'apikey':
+      if (authConfig.apikey.value) {
+        headers[authConfig.apikey.name] = authConfig.apikey.value
+      }
+      break
+      
+    case 'oauth':
+      if (authConfig.oauth.accessToken) {
+        headers['Authorization'] = `Bearer ${authConfig.oauth.accessToken}`
+      }
+      break
+  }
+  
+  return headers
+}
+
+function initiateOAuthFlow() {
+  const clientId = document.getElementById('oauthClientId').value.trim()
+  const authUrl = document.getElementById('oauthAuthUrl').value.trim()
+  const scopes = document.getElementById('oauthScopes').value.trim()
+  
+  if (!clientId || !authUrl) {
+    alert('Please enter Client ID and Authorization URL first')
+    return
+  }
+  
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: window.location.origin + '/oauth-callback',
+    scope: scopes || 'read write'
+  })
+  
+  const oauthUrl = `${authUrl}?${params.toString()}`
+  
+  const popup = window.open(oauthUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
+  
+  const checkPopup = setInterval(() => {
+    if (popup.closed) {
+      clearInterval(checkPopup)
+      alert('OAuth flow completed. Please manually enter the access token if you received one.')
+    }
+  }, 1000)
 }
 
 async function loadApiData() {
@@ -516,9 +759,13 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
       }
     });
 
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
+    const authHeaders = getAuthHeaders();
+    Object.keys(authHeaders).forEach(key => {
+      if (!headers[key]) {
+        headers[key] = authHeaders[key];
+      }
+    });
+
 
     const requestOptions = {
       method: endpoint.httpMethodType,
@@ -878,9 +1125,13 @@ async function sendRequest() {
       }
     })
 
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`
-    }
+    const authHeaders = getAuthHeaders()
+    Object.keys(authHeaders).forEach(key => {
+      if (!headers[key]) {
+        headers[key] = authHeaders[key];
+      }
+    })
+
 
     const options = {
       method,
@@ -960,27 +1211,6 @@ function exportOpenAPI() {
   a.download = "api-spec.json"
   a.click()
   URL.revokeObjectURL(url)
-}
-
-function saveAuthToken() {
-  const token = document.getElementById("authToken").value.trim()
-  authToken = token
-
-  const status = document.getElementById("tokenStatus")
-  if (token) {
-    status.classList.remove("hidden")
-  } else {
-    status.classList.add("hidden")
-  }
-
-  document.getElementById("authModal").classList.remove("show")
-}
-
-function clearAuthToken() {
-  authToken = ""
-  document.getElementById("authToken").value = ""
-  document.getElementById("tokenStatus").classList.add("hidden")
-  document.getElementById("authModal").classList.remove("show")
 }
 
 function clearSearch() {
@@ -1085,8 +1315,9 @@ function switchRequestTab(tabName) {
 
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async () => {
-  // Initialize theme before loading other content
   initializeTheme()
+  
+  loadAuthConfiguration()
   
   await loadApiData()
   
@@ -1115,8 +1346,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("addHeaderBtn").addEventListener("click", addHeader)
   document.getElementById("sendRequestBtn").addEventListener("click", sendRequest)
 
-  document.getElementById("saveTokenBtn").addEventListener("click", saveAuthToken)
-  document.getElementById("clearTokenBtn").addEventListener("click", clearAuthToken)
+  document.getElementById("saveAuthBtn").addEventListener("click", saveAuthConfiguration)
+  document.getElementById("clearAuthBtn").addEventListener("click", clearAuthConfiguration)
 
   document.querySelectorAll(".tab-trigger").forEach((trigger) => {
     trigger.addEventListener("click", (e) => {

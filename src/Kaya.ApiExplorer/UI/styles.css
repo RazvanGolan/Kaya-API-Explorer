@@ -913,6 +913,114 @@ body {
   box-shadow: 0 0 0 3px var(--accent-primary-light);
 }
 
+.auth-type-selector {
+  margin-bottom: 24px;
+}
+
+.auth-type-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+.auth-section {
+  transition: all 0.3s ease;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-light);
+}
+
+.secure-input {
+  font-family: "Monaco", "Menlo", monospace;
+  letter-spacing: 2px;
+}
+
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  padding-right: 40px;
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-visibility:hover {
+  background-color: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.auth-status {
+  padding: 12px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+.auth-status.success {
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+}
+
+.auth-status.success p {
+  color: var(--success-text);
+  font-size: 14px;
+  margin: 0;
+}
+
+.auth-status.info {
+  background-color: var(--info-bg);
+  border: 1px solid var(--info-border);
+}
+
+.auth-status.info p {
+  color: var(--info-text);
+  font-size: 14px;
+  margin: 0;
+}
+
+.auth-status.warning {
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+}
+
+.auth-status.warning p {
+  color: var(--warning-text);
+  font-size: 14px;
+  margin: 0;
+}
+
 .help-text {
   font-size: 12px;
   color: var(--text-secondary);
@@ -926,6 +1034,20 @@ body {
   margin-bottom: 16px;
 }
 
+.token-status {
+  padding: 12px;
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.token-status p {
+  color: var(--success-text);
+  font-size: 14px;
+}
+
+/* Legacy support for existing token-status */
 .token-status {
   padding: 12px;
   background-color: var(--success-bg);
