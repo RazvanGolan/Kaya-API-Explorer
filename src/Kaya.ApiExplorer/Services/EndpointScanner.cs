@@ -88,7 +88,7 @@ public class EndpointScanner : IEndpointScanner
                     Description = GetMethodDescription(method),
                     Parameters = GetMethodParameters(method, fullPath),
                     RequestBody = GetMethodRequestBody(method),
-                    Responses = GetMethodResponses(method),
+                    Response = GetMethodResponse(method),
                 };
 
                 endpoints.Add(endpoint);
@@ -138,51 +138,62 @@ public class EndpointScanner : IEndpointScanner
         };
     }
 
-    // TODO: remove default responses and make it more dynamic based on method attributes
-    private static Dictionary<int, string> GetMethodResponses(MethodInfo method)
+    private static ApiResponse? GetMethodResponse(MethodInfo method)
     {
-        var httpMethods = GetHttpMethods(method);
-        var primaryMethod = httpMethods.FirstOrDefault() ?? "GET";
+        var returnType = method.ReturnType;
         
-        return primaryMethod.ToUpper() switch
+        if (returnType.IsGenericType)
         {
-            "GET" => new Dictionary<int, string>
+            var genericTypeDefinition = returnType.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(Task<>) || 
+                genericTypeDefinition == typeof(ValueTask<>))
             {
-                { 200, "Success - Returns requested data" },
-                { 400, "Bad Request - Invalid parameters" },
-                { 401, "Unauthorized" },
-                { 404, "Not found" }
-            },
-            "POST" => new Dictionary<int, string>
-            {
-                { 201, "Created - Resource successfully created" },
-                { 400, "Bad Request - Invalid data" },
-                { 401, "Unauthorized" },
-                { 409, "Conflict - Resource already exists" }
-            },
-            "PUT" => new Dictionary<int, string>
-            {
-                { 200, "Success - Resource updated" },
-                { 400, "Bad Request - Invalid data" },
-                { 401, "Unauthorized" },
-                { 404, "Not found" }
-            },
-            "DELETE" => new Dictionary<int, string>
-            {
-                { 204, "No Content - Resource deleted" },
-                { 401, "Unauthorized" },
-                { 404, "Not found" }
-            },
-            _ => new Dictionary<int, string>
-            {
-                { 200, "Success" },
-                { 400, "Bad Request" },
-                { 500, "Internal Server Error" }
+                returnType = returnType.GetGenericArguments().FirstOrDefault() ?? typeof(void);
             }
+            else if (returnType == typeof(Task) || returnType == typeof(ValueTask))
+            {
+                returnType = typeof(void);
+            }
+        }
+
+        if (returnType == typeof(void))
+        {
+            return null;
+        }
+
+        var actualReturnType = returnType;
+        if (returnType.Name.Contains("ActionResult") || returnType.Name.Contains("IActionResult"))
+        {
+            if (returnType.IsGenericType)
+            {
+                var genericArg = returnType.GetGenericArguments().FirstOrDefault();
+                if (genericArg != null)
+                {
+                    actualReturnType = genericArg;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        var typeName = GetFriendlyTypeName(actualReturnType);
+        var schemas = new Dictionary<string, ApiSchema>();
+        var processedTypes = new HashSet<Type>();
+        var example = GenerateExampleJson(actualReturnType, schemas, processedTypes);
+
+        return new ApiResponse
+        {
+            Type = typeName,
+            Example = example
         };
     }
 
-    // Enhanced to generate more realistic examples based on type and generate schemas
     private static string GenerateExampleJson(Type type, Dictionary<string, ApiSchema> schemas, HashSet<Type> processedTypes)
     {
         if (type == typeof(string)) return "\"string value\"";
@@ -191,31 +202,18 @@ public class EndpointScanner : IEndpointScanner
         if (type == typeof(DateTime)) return "\"2023-07-13T10:30:00Z\"";
         if (type == typeof(Guid)) return "\"3fa85f64-5717-4562-b3fc-2c963f66afa6\"";
         if (type == typeof(decimal) || type == typeof(double) || type == typeof(float)) return "12.34";
-        
-        if (type.IsArray)
+        if (type == typeof(byte)) return "0";
+        // TODO: find a better example for enum types
+        if (type.IsEnum) 
+            return "0";
+
+        if (IsEnumerableType(type))
         {
-            var elementType = type.GetElementType();
+            var elementType = type.GetGenericArguments().FirstOrDefault();
             if (elementType != null)
             {
                 var elementExample = GenerateExampleJson(elementType, schemas, processedTypes);
                 return $"[{elementExample}]";
-            }
-        }
-        
-        if (type.IsGenericType)
-        {
-            var genericTypeDefinition = type.GetGenericTypeDefinition();
-            if (genericTypeDefinition == typeof(List<>) || 
-                genericTypeDefinition == typeof(IEnumerable<>) ||
-                genericTypeDefinition == typeof(ICollection<>) ||
-                genericTypeDefinition == typeof(IList<>))
-            {
-                var elementType = type.GetGenericArguments().FirstOrDefault();
-                if (elementType != null)
-                {
-                    var elementExample = GenerateExampleJson(elementType, schemas, processedTypes);
-                    return $"[{elementExample}]";
-                }
             }
         }
         
@@ -249,7 +247,7 @@ public class EndpointScanner : IEndpointScanner
         GenerateSchemaForType(type, schemas, processedTypes);
         
         var typeName = GetFriendlyTypeName(type);
-        return schemas.ContainsKey(typeName) ? schemas[typeName] : null;
+        return schemas.GetValueOrDefault(typeName);
     }
 
     private static void GenerateSchemaForType(Type type, Dictionary<string, ApiSchema> schemas, HashSet<Type> processedTypes)
@@ -311,7 +309,7 @@ public class EndpointScanner : IEndpointScanner
             }
             else if (underlyingType == typeof(int) || underlyingType == typeof(long))
             {
-                example[property.Name] = 0;
+                example[property.Name] = 123;
             }
             else if (underlyingType == typeof(bool))
             {
@@ -329,10 +327,74 @@ public class EndpointScanner : IEndpointScanner
             {
                 example[property.Name] = 12.34;
             }
+            else if (underlyingType == typeof(object))
+            {
+                example[property.Name] = "object";
+            }
             else if (underlyingType.IsEnum)
             {
-                var enumValues = Enum.GetNames(underlyingType);
-                example[property.Name] = enumValues.FirstOrDefault() ?? "EnumValue";
+                var enumValues = Enum.GetValues(underlyingType);
+                example[property.Name] = enumValues.GetValue(0) ?? 0;
+            }
+            else if (underlyingType.IsGenericType)
+            {
+                var genericTypeDefinition = underlyingType.GetGenericTypeDefinition();
+                
+                // Handle Dictionary types first
+                if (genericTypeDefinition == typeof(Dictionary<,>))
+                {
+                    var keyType = underlyingType.GetGenericArguments()[0];
+                    var valueType = underlyingType.GetGenericArguments()[1];
+                    
+                    var keyExample = GenerateSimpleExample(keyType);
+                    var valueExample = GenerateSimpleExample(valueType);
+                    
+                    example[property.Name] = new Dictionary<object, object>
+                    {
+                        { keyExample, valueExample }
+                    };
+                }
+                else if (IsEnumerableType(underlyingType))
+                {
+                    var elementType = underlyingType.GetGenericArguments().FirstOrDefault();
+                    if (elementType != null)
+                    {
+                        var elementExample = GenerateSimpleExample(elementType);
+                        example[property.Name] = new[] { elementExample };
+                    }
+                    else
+                    {
+                        example[property.Name] = new object[] { };
+                    }
+                }
+                // Handle other generic types (like ApiResponse<T>, etc.)
+                else
+                {
+                    try
+                    {
+                        var nestedExample = GenerateExampleFromSchema(underlyingType, schemas);
+                        var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                        example[property.Name] = parsedExample ?? "{}";
+                    }
+                    catch
+                    {
+                        example[property.Name] = "{}";
+                    }
+                }
+            }
+            else if (IsComplexType(underlyingType))
+            {
+                // For complex nested objects, generate a nested example
+                var nestedExample = GenerateExampleFromSchema(underlyingType, schemas);
+                try
+                {
+                    var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                    example[property.Name] = parsedExample ?? "{}";
+                }
+                catch
+                {
+                    example[property.Name] = "{}";
+                }
             }
             else
             {
@@ -345,6 +407,72 @@ public class EndpointScanner : IEndpointScanner
             WriteIndented = true,
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
         });
+    }
+
+    private static bool IsEnumerableType(Type type)
+    {
+        if (type.IsArray) return true;
+        
+        if (type.IsGenericType)
+        {
+            var genericTypeDefinition = type.GetGenericTypeDefinition();
+            return genericTypeDefinition == typeof(List<>) || 
+                   genericTypeDefinition == typeof(IEnumerable<>) ||
+                   genericTypeDefinition == typeof(ICollection<>) ||
+                   genericTypeDefinition == typeof(IList<>) ||
+                   genericTypeDefinition == typeof(IReadOnlyCollection<>) ||
+                   genericTypeDefinition == typeof(IReadOnlyList<>);
+        }
+        
+        return typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string);
+    }
+
+    private static object GenerateSimpleExample(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+        
+        if (underlyingType == typeof(string)) return "sample text";
+        if (underlyingType == typeof(int) || underlyingType == typeof(long)) return 123;
+        if (underlyingType == typeof(bool)) return true;
+        if (underlyingType == typeof(DateTime)) return DateTime.UtcNow;
+        if (underlyingType == typeof(Guid)) return Guid.NewGuid();
+        if (underlyingType == typeof(decimal) || underlyingType == typeof(double) || underlyingType == typeof(float)) return 12.34;
+        if (underlyingType == typeof(byte)) return (byte)0;
+        if (underlyingType == typeof(object)) return "object";
+
+        if (underlyingType.IsEnum)
+        {
+            var enumValues = Enum.GetValues(underlyingType);
+            return enumValues.GetValue(0) ?? 0;
+        }
+        
+        // Handle arrays and collections
+        if (IsEnumerableType(underlyingType))
+        {
+            var elementType = underlyingType.GetGenericArguments().FirstOrDefault();
+            if (elementType != null)
+            {
+                var elementExample = GenerateSimpleExample(elementType);
+                return new[] { elementExample };
+            }
+            return Array.Empty<object>();
+        }
+        
+        if (underlyingType.IsGenericType)
+        {
+            var schemas = new Dictionary<string, ApiSchema>();
+            try
+            {
+                var exampleJson = GenerateExampleFromSchema(underlyingType, schemas);
+                return System.Text.Json.JsonSerializer.Deserialize<object>(exampleJson) ?? new { };
+            }
+            catch
+            {
+                return new { };
+            }
+        }
+        
+        return new { };
     }
 
     private static List<string> GetHttpMethods(MethodInfo method)
@@ -423,7 +551,7 @@ public class EndpointScanner : IEndpointScanner
             {
                 Name = param.Name ?? "unknown",
                 Type = typeName,
-                Required = !param.HasDefaultValue && !param.ParameterType.IsValueType ||
+                Required = param is { HasDefaultValue: false, ParameterType.IsValueType: false } ||
                           (param.ParameterType.IsValueType && Nullable.GetUnderlyingType(param.ParameterType) == null),
                 DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
                 Source = parameterSource
@@ -478,40 +606,35 @@ public class EndpointScanner : IEndpointScanner
         if (type == typeof(bool)) return "boolean";
         if (type == typeof(DateTime)) return "datetime";
         if (type == typeof(Guid)) return "guid";
-
-        // Handle arrays and collections
-        if (type.IsArray)
-        {
-            var elementType = type.GetElementType();
-            return elementType != null
-                ? $"{GetFriendlyTypeName(elementType)}[]"
-                : "object[]";
-        }
-
-        // Handle IEnumerable<T>, ICollection<T>, IList<T>, List<T>, etc.
+        if (type == typeof(object)) return "object";
+        if (type == typeof(byte[])) return "byte";
+        if (type == typeof(decimal)) return "decimal";
+        if (type == typeof(double)) return "double";
+        if (type == typeof(float)) return "float";
+        
         if (type.IsGenericType)
         {
             var genericTypeDefinition = type.GetGenericTypeDefinition();
-            var genericArgs = type.GetGenericArguments();
-
-            if (genericTypeDefinition == typeof(IEnumerable<>) ||
-                genericTypeDefinition == typeof(ICollection<>) ||
-                genericTypeDefinition == typeof(IList<>) ||
-                genericTypeDefinition == typeof(List<>) ||
-                genericTypeDefinition == typeof(IReadOnlyCollection<>) ||
-                genericTypeDefinition == typeof(IReadOnlyList<>))
+            var typeName = genericTypeDefinition.Name;
+            
+            // Remove the generic arity suffix (e.g., `1, `2, etc.)
+            var backtickIndex = typeName.IndexOf('`');
+            if (backtickIndex >= 0)
             {
-                var elementType = genericArgs.FirstOrDefault();
+                typeName = typeName[..backtickIndex];
+            }
+            
+            if (IsEnumerableType(type))
+            {
+                var elementType = type.GetGenericArguments().FirstOrDefault();
                 return elementType != null
                     ? $"{GetFriendlyTypeName(elementType)}[]"
                     : "object[]";
             }
-        }
-
-        // Handle non-generic IEnumerable (less common but possible)
-        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string))
-        {
-            return "object[]";
+            
+            var genericArgs = type.GetGenericArguments();
+            var argNames = genericArgs.Select(GetFriendlyTypeName);
+            return $"{typeName}<{string.Join(", ", argNames)}>";
         }
 
         var nullableType = Nullable.GetUnderlyingType(type);

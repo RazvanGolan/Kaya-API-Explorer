@@ -15,7 +15,7 @@ public class ApiEndpoint
     public string Description { get; set; } = string.Empty;
     public List<ApiParameter> Parameters { get; set; } = [];
     public ApiRequestBody? RequestBody { get; set; }
-    public Dictionary<int, string> Responses { get; set; } = [];
+    public ApiResponse? Response { get; set; }
 }
 
 public class ApiParameter
@@ -39,8 +39,7 @@ public class ApiRequestBody
 public class ApiResponse
 {
     public string Type { get; set; } = string.Empty;
-    public string Description { get; set; } = string.Empty;
-    public Dictionary<int, string> StatusCodes { get; set; } = new();
+    public string Example { get; set; } = string.Empty;
 }
 
 public class ApiSchema

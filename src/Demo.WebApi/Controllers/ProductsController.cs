@@ -9,9 +9,55 @@ public class ProductsController : ControllerBase
 {
     private static readonly List<Product> _products =
     [
-        new Product { Id = 1, Name = "Laptop", Description = "High-performance laptop", Price = 999.99m, StockQuantity = 10, Category = "Electronics", CreatedAt = DateTime.UtcNow.AddDays(-20) },
-        new Product { Id = 2, Name = "Mouse", Description = "Wireless mouse", Price = 29.99m, StockQuantity = 50, Category = "Electronics", CreatedAt = DateTime.UtcNow.AddDays(-10) },
-        new Product { Id = 3, Name = "Coffee Mug", Description = "Ceramic coffee mug", Price = 12.99m, StockQuantity = 25, Category = "Home", CreatedAt = DateTime.UtcNow.AddDays(-5) }
+        new Product 
+        { 
+            Id = 1, 
+            Name = "Gaming Laptop", 
+            Description = "High-performance gaming laptop with RTX 4060", 
+            Price = 1299.99m, 
+            StockQuantity = 10, 
+            Category = ProductCategory.Electronics, 
+            CreatedAt = DateTime.UtcNow.AddDays(-20),
+            Details = new ProductDetails
+            {
+                Sku = "LAP-001",
+                Brand = "TechCorp",
+                Model = "GameMaster Pro",
+                Specifications = new Dictionary<string, string>
+                {
+                    ["CPU"] = "Intel i7-12700H",
+                    ["GPU"] = "RTX 4060 8GB",
+                    ["RAM"] = "16GB DDR4",
+                    ["Storage"] = "1TB NVMe SSD"
+                }
+            }
+        },
+        new Product 
+        { 
+            Id = 2, 
+            Name = "Wireless Mouse", 
+            Description = "Ergonomic wireless gaming mouse", 
+            Price = 79.99m, 
+            StockQuantity = 50, 
+            Category = ProductCategory.Electronics, 
+            CreatedAt = DateTime.UtcNow.AddDays(-10),
+            Details = new ProductDetails
+            {
+                Sku = "MOU-001",
+                Brand = "GameTech",
+                Model = "Pro Click"
+            }
+        },
+        new Product 
+        { 
+            Id = 3, 
+            Name = "Coffee Mug", 
+            Description = "Ceramic coffee mug", 
+            Price = 12.99m, 
+            StockQuantity = 25, 
+            Category = ProductCategory.Home, 
+            CreatedAt = DateTime.UtcNow.AddDays(-5)
+        }
     ];
 
     /// <summary>
@@ -23,15 +69,15 @@ public class ProductsController : ControllerBase
     /// <returns>List of products</returns>
     [HttpGet]
     public ActionResult<IEnumerable<Product>> GetProducts(
-        [FromQuery] string? category = null,
+        [FromQuery] ProductCategory? category = null,
         [FromQuery] decimal? minPrice = null,
         [FromQuery] decimal? maxPrice = null)
     {
         var products = _products.AsEnumerable();
 
-        if (!string.IsNullOrEmpty(category))
+        if (category.HasValue)
         {
-            products = products.Where(p => p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+            products = products.Where(p => p.Category == category.Value);
         }
 
         if (minPrice.HasValue)
@@ -85,7 +131,8 @@ public class ProductsController : ControllerBase
             Price = request.Price,
             StockQuantity = request.StockQuantity,
             Category = request.Category,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Details = request.Details ?? new ProductDetails()
         };
 
         _products.Add(product);
@@ -116,9 +163,9 @@ public class ProductsController : ControllerBase
     /// </summary>
     /// <returns>List of categories</returns>
     [HttpGet("categories")]
-    public ActionResult<IEnumerable<string>> GetCategories()
+    public ActionResult<IEnumerable<ProductCategory>> GetCategories()
     {
-        var categories = _products.Select(p => p.Category).Distinct().OrderBy(c => c);
+        var categories = Enum.GetValues<ProductCategory>().OrderBy(c => c.ToString());
         return Ok(categories);
     }
 

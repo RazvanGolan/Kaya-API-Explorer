@@ -9,25 +9,71 @@ public class UsersController : ControllerBase
 {
     private static readonly List<User> _users =
     [
-        new User { Id = 1, Name = "John Doe", Email = "john@example.com", CreatedAt = DateTime.UtcNow.AddDays(-30), IsActive = true },
-        new User { Id = 2, Name = "Jane Smith", Email = "jane@example.com", CreatedAt = DateTime.UtcNow.AddDays(-15), IsActive = true },
-        new User { Id = 3, Name = "Bob Johnson", Email = "bob@example.com", CreatedAt = DateTime.UtcNow.AddDays(-7), IsActive = false }
+        new User 
+        { 
+            Id = 1, 
+            Name = "John Doe", 
+            Email = "john@example.com", 
+            CreatedAt = DateTime.UtcNow.AddDays(-30), 
+            IsActive = true,
+            Role = UserRole.Admin,
+            ContactInfo = new ContactInfo(
+                "john@example.com",
+                "+1-555-0123",
+                new Address("123 Main St", "New York", "NY", "10001", "USA")
+            ),
+            Tags = ["premium", "early-adopter"]
+        },
+        new User 
+        { 
+            Id = 2, 
+            Name = "Jane Smith", 
+            Email = "jane@example.com", 
+            CreatedAt = DateTime.UtcNow.AddDays(-15), 
+            IsActive = true,
+            Role = UserRole.User,
+            ContactInfo = new ContactInfo(
+                "jane@example.com",
+                "+1-555-0456",
+                new Address("456 Oak Ave", "Los Angeles", "CA", "90210", "USA")
+            ),
+            Tags = ["new-user"]
+        },
+        new User 
+        { 
+            Id = 3, 
+            Name = "Bob Johnson", 
+            Email = "bob@example.com", 
+            CreatedAt = DateTime.UtcNow.AddDays(-7), 
+            IsActive = false,
+            Role = UserRole.User,
+            Tags = ["inactive"]
+        }
     ];
 
     /// <summary>
     /// Gets all users with optional filtering
     /// </summary>
     /// <param name="isActive">Filter by active status</param>
+    /// <param name="role">Filter by user role</param>
     /// <param name="search">Search in name or email</param>
     /// <returns>List of users</returns>
     [HttpGet]
-    public ActionResult<IEnumerable<User>> GetUsers([FromQuery] bool? isActive = null, [FromQuery] string? search = null)
+    public ActionResult<IEnumerable<User>> GetUsers(
+        [FromQuery] bool? isActive = null, 
+        [FromQuery] UserRole? role = null,
+        [FromQuery] string? search = null)
     {
         var users = _users.AsEnumerable();
 
         if (isActive.HasValue)
         {
             users = users.Where(u => u.IsActive == isActive.Value);
+        }
+
+        if (role.HasValue)
+        {
+            users = users.Where(u => u.Role == role.Value);
         }
 
         if (!string.IsNullOrEmpty(search))
@@ -75,7 +121,11 @@ public class UsersController : ControllerBase
             Name = request.Name,
             Email = request.Email,
             CreatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            Role = request.Role,
+            ContactInfo = request.ContactInfo,
+            Preferences = request.Preferences ?? new UserPreferences(),
+            Tags = request.Tags
         };
 
         _users.Add(user);
@@ -110,6 +160,16 @@ public class UsersController : ControllerBase
         if (request.IsActive.HasValue)
         {
             user.IsActive = request.IsActive.Value;
+        }
+
+        if (request.Role.HasValue)
+        {
+            user.Role = request.Role.Value;
+        }
+
+        if (request.ContactInfo != null)
+        {
+            user.ContactInfo = request.ContactInfo;
         }
 
         return Ok(user);
@@ -148,7 +208,8 @@ public class UsersController : ControllerBase
             TotalUsers = _users.Count,
             ActiveUsers = _users.Count(u => u.IsActive),
             InactiveUsers = _users.Count(u => !u.IsActive),
-            AverageAccountAgeDays = Math.Round(averageAgeDays, 1)
+            AverageAccountAgeDays = Math.Round(averageAgeDays, 1),
+            UsersByRole = _users.GroupBy(u => u.Role).ToDictionary(g => g.Key.ToString(), g => g.Count())
         });
     }
 }

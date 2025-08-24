@@ -246,6 +246,9 @@ body {
   font-weight: 500;
   border: 1px solid;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  max-width: none;
+  overflow: visible;
 }
 
 .badge.get {

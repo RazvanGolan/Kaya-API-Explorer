@@ -24,6 +24,15 @@ const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function getInitialTheme() {
   console.log(window.KayaApiExplorerConfig)
   if (window.KayaApiExplorerConfig && window.KayaApiExplorerConfig.defaultTheme) {
@@ -483,11 +492,13 @@ function renderRequest(endpoint) {
     return '<p class="text-muted">No request body required</p>'
   }
 
+  const escapedType = escapeHtml(endpoint.requestBody.type);
+
   return `
         <div>
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <h4>Request Body</h4>
-                <span class="badge">${endpoint.requestBody.type}</span>
+                <span class="badge">${escapedType}</span>
             </div>
             <div class="code-block">
                 <button class="copy-btn" onclick="copyToClipboard(this)">
@@ -503,18 +514,29 @@ function renderRequest(endpoint) {
 }
 
 function renderResponses(endpoint) {
-  return Object.entries(endpoint.responses)
-    .map(
-      ([code, description]) => `
-        <div class="response-item">
-            <div class="response-header">
-                <span class="status-badge ${getStatusClass(code)}">${code}</span>
-            </div>
-            <p class="parameter-description">${description}</p>
-        </div>
-    `,
-    )
-    .join("")
+  if (!endpoint.response) {
+    return '<p class="text-muted">No response body returned</p>'
+  }
+
+  const escapedType = escapeHtml(endpoint.response.type);
+
+  return `
+    <div>
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <h4>Response Body</h4>
+        <span class="badge">${escapedType}</span>
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyToClipboard(this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+        <pre><code>${endpoint.response.example}</code></pre>
+      </div>
+    </div>
+  `
 }
 
 function renderTryItOut(endpoint, index) {
