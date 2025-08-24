@@ -9,7 +9,7 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 - 📊 **Detailed Information**: Shows parameters, response types, HTTP methods, and more
 - 🔧 **Easy Integration**: Just add a few lines to your startup
 - 📦 **NuGet Package**: Simple installation via NuGet
-- 🔄 **Two Deployment Modes**: Choose between middleware (same server) or sidecar (separate server) modes
+- 🎨 **Clean Middleware**: Integrates seamlessly into your ASP.NET Core pipeline
 
 ## Quick Start
 
@@ -48,7 +48,7 @@ app.Run();
 
 ### 3. Access the UI
 
-Navigate to `http://localhost:9090/api-explorer` to view your API documentation.
+Navigate to `http://localhost:5000/api-explorer` (or your app's URL) to view your API documentation.
 
 ## Demo Project
 
@@ -61,7 +61,7 @@ cd src/Demo.WebApi
 dotnet run
 ```
 
-Then navigate to `https://localhost:9090/api-explorer` to see the API Explorer in action.
+Then navigate to `https://localhost:7000/api-explorer` (or your app's HTTPS URL) to see the API Explorer in action.
 
 ## How It Works
 
@@ -86,35 +86,16 @@ For each endpoint, Kaya captures:
 
 ## Configuration
 
-Kaya API Explorer supports two deployment modes to fit different use cases:
+You can customize Kaya API Explorer in several ways:
 
-### 1. Sidecar Mode (Default)
-
-Runs as a separate service alongside your main application on a different port. This provides better isolation and prevents conflicts with your main application routes.
+### Basic Configuration
 
 ```csharp
-// The sidecar automatically starts on a separate port (typically 9090)
+// Use default settings (route: "/api-explorer", theme: "light")
 builder.Services.AddKayaApiExplorer();
-```
 
-### 2. Middleware Mode
-
-Runs on the same server as your main application, integrated directly into your request pipeline.
-
-```csharp
-// Configure to run as middleware on the same server
-builder.Services.AddKayaApiExplorer(options =>
-{
-    options.UseSidecar = false; // Run as middleware instead of sidecar
-});
-
-var app = builder.Build();
-
-// Add the middleware to your pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseKayaApiExplorer("/api-explorer");
-}
+// Customize route prefix and theme
+builder.Services.AddKayaApiExplorer(routePrefix: "/api-docs", defaultTheme: "dark");
 ```
 
 ### Configuration via appsettings.json
@@ -124,18 +105,17 @@ You can also configure Kaya API Explorer through your `appsettings.json` file:
 ```json
 {
   "KayaApiExplorer": {
-    "UseSidecar": false,
     "RoutePrefix": "/api-docs",
-    "SidecarPort": 9090,
-    "EnabledInProduction": false
+    "DefaultTheme": "dark"
   }
 }
 ```
 
-Then in your `Program.cs`:
+Then bind the configuration in your `Program.cs`:
 
 ```csharp
-builder.Services.AddKayaApiExplorer(builder.Configuration.GetSection("KayaApiExplorer"));
+builder.Services.Configure<KayaApiExplorerOptions>(
+    builder.Configuration.GetSection("KayaApiExplorer"));
 ```
 
 ### Custom Route Prefix
@@ -153,6 +133,8 @@ The UI is built with embedded HTML, CSS, and JavaScript files that are compiled 
 - **Fast loading**: Resources are served from memory
 - **Consistent experience**: UI works the same across all environments
 
+The middleware integrates seamlessly into your ASP.NET Core pipeline, serving the API Explorer at your specified route without any external dependencies or separate processes.
+
 ## Project Structure
 
 ```
@@ -161,7 +143,7 @@ src/
 │   ├── Extensions/            # Service registration extensions
 │   ├── Middleware/            # HTTP middleware
 │   ├── Models/               # Data models
-│   ├── Services/             # Core scanning logic, UI service and sidecar logic
+│   ├── Services/             # Core scanning logic and UI service
 │   └── UI/                   # Embedded HTML, CSS, and JavaScript files
 ├── Demo.WebApi/              # Demo application
 │   ├── Controllers/          # Sample controllers
@@ -188,8 +170,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [ ] Support for XML documentation comments
 - [ ] Export to OpenAPI/Swagger format
-- [ ] Request/response examples
-- [ ] Model schema visualization
+- [x] Request/response examples
+- [x] Model schema visualization
 - [x] Dark mode support
 - [ ] Performance monitoring integration
 - [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
