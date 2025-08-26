@@ -7,6 +7,7 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 - 🚀 **Automatic Endpoint Discovery**: Scans your controllers and actions automatically
 - 🎨 **Beautiful UI**: Clean, modern interface with embedded HTML/CSS/JS
 - 📊 **Detailed Information**: Shows parameters, response types, HTTP methods, and more
+- ⚡ **Performance Monitoring**: Real-time request duration and data size tracking with color-coded indicators
 - 🔧 **Easy Integration**: Just add a few lines to your startup
 - 📦 **NuGet Package**: Simple installation via NuGet
 - 🎨 **Clean Middleware**: Integrates seamlessly into your ASP.NET Core pipeline
@@ -144,7 +145,7 @@ src/
 │   ├── Middleware/            # HTTP middleware
 │   ├── Models/               # Data models
 │   ├── Services/             # Core scanning logic and UI service
-│   └── UI/                   # Embedded HTML, CSS, and JavaScript files
+│   └── UI/                   # Embedded HTML, CSS, JavaScript and logo files
 ├── Demo.WebApi/              # Demo application
 │   ├── Controllers/          # Sample controllers
 │   └── Models/              # Sample models
@@ -173,7 +174,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [x] Request/response examples
 - [x] Model schema visualization
 - [x] Dark mode support
-- [ ] Performance monitoring integration
+- [x] Performance monitoring integration
 - [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
 - [ ] Debuggings SignalR
 - [ ] Add GraphQL support

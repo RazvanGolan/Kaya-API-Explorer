@@ -597,7 +597,6 @@ public class EndpointScanner : IEndpointScanner
         return "Body";
     }
 
-    // TODO: See if I missing any common types
     private static string GetFriendlyTypeName(Type type)
     {
         if (type == typeof(void)) return "void";

@@ -6,12 +6,19 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Kaya.ApiExplorer</PackageId>
-    <PackageVersion>0.0.0</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
     <Authors>RazvanGolan</Authors>
-    <Description>A Swagger-like API explorer that scans HTTP endpoints and displays them in a beautiful UI</Description>
-    <PackageTags>swagger;api;explorer;documentation;endpoints</PackageTags>
-    <RepositoryUrl>https://github.com/yourusername/kaya-api-explorer</RepositoryUrl>
+    <Company>RazvanGolan</Company>
+    <Product>Kaya API Explorer</Product>
+    <Description>A lightweight API documentation tool for .NET applications that automatically scans your HTTP endpoints and displays them in a beautiful, interactive UI. Features automatic endpoint discovery, clean modern interface, detailed parameter and response information, and easy integration into ASP.NET Core applications.</Description>
+    <PackageTags>api;explorer;documentation;endpoints;aspnetcore;middleware;ui;interactive</PackageTags>
+    <RepositoryUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReleaseNotes>Initial release of Kaya API Explorer - A lightweight alternative to Swagger with automatic endpoint discovery and beautiful UI.</PackageReleaseNotes>
   </PropertyGroup>  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -22,5 +29,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="UI/**/*" />
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+    <None Include="UI/icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

@@ -24,6 +24,47 @@ const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
 
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
+function getDurationColor(ms) {
+  if (ms < 500) return '#22c55e' 
+  if (ms < 1000) return '#f59e0b'
+  return '#ef4444'
+}
+
+function getSizeColor(bytes) {
+  if (bytes < 1024) return '#22c55e'
+  if (bytes < 1024 * 100) return '#f59e0b'
+  return '#ef4444'
+}
+
+function generatePerformanceHtml(duration, requestSize, responseSize, status) {
+  return `
+    <div class="performance-metrics" style="background: var(--bg-secondary); border-radius: 6px; padding: 12px; margin-bottom: 12px; border-left: 4px solid ${getDurationColor(duration)};">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <h6 style="margin: 0; color: var(--text-primary);">Performance</h6>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85em;">
+        <div><strong>Duration:</strong> <span style="color: ${getDurationColor(duration)}; font-weight: 600;">${formatDuration(duration)}</span></div>
+        <div><strong>Request:</strong> <span style="color: ${getSizeColor(requestSize)}; font-weight: 600;">${formatBytes(requestSize)}</span></div>
+        <div><strong>Response:</strong> <span style="color: ${getSizeColor(responseSize)}; font-weight: 600;">${formatBytes(responseSize)}</span></div>
+        <div><strong>Status:</strong> <span style="color: ${status >= 200 && status < 300 ? '#22c55e' : '#ef4444'}; font-weight: 600;">${status || 'Error'}</span></div>
+      </div>
+    </div>
+  `
+}
+
 function escapeHtml(text) {
   return text
     .replace(/&/g, '&amp;')
@@ -747,6 +788,8 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
   responseContainer.style.display = 'block';
   responseContainer.innerHTML = '<p>Executing request...</p>';
 
+  const startTime = performance.now();
+
   try {
     let finalUrl = endpoint.path;
     const pathParams = endpoint.parameters?.filter(p => p.source === "Route") || [];
@@ -824,6 +867,11 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
     const response = await fetch(finalUrl, requestOptions);
     const responseText = await response.text();
     
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    const requestSize = requestOptions.body ? new Blob([requestOptions.body]).size : 0;
+    const responseSize = new Blob([responseText]).size;
+    
     let responseData;
     try {
       responseData = JSON.parse(responseText);
@@ -856,11 +904,12 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
           </div>
         </div>
       </div>
+      ${generatePerformanceHtml(duration, requestSize, responseSize, response.status)}
     `;
     
     responseContainer.innerHTML = responseHtml;
 
-  } catch (error) {
+  } catch (error) {    
     responseContainer.innerHTML = `
       <div class="response-error" style="margin-top: 12px;">
         <h5>Error</h5>
@@ -1139,6 +1188,8 @@ async function sendRequest() {
   sendBtn.textContent = "Sending..."
   sendBtn.disabled = true
 
+  const startTime = performance.now();
+
   try {
     const headers = {}
     requestHeaders.forEach((header) => {
@@ -1180,6 +1231,11 @@ async function sendRequest() {
     const response = await fetch(url, options)
     const responseText = await response.text()
 
+    const endTime = performance.now();
+    const duration = Math.round(endTime - startTime);
+    const requestSize = options.body ? new Blob([options.body]).size : 0;
+    const responseSize = new Blob([responseText]).size;
+
     const responseContainer = document.getElementById("responseContainer")
 
     if (response.ok) {
@@ -1193,6 +1249,7 @@ async function sendRequest() {
                         <pre>${responseText}</pre>
                     </div>
                 </div>
+                ${generatePerformanceHtml(duration, requestSize, responseSize, response.status)}
             `
     } else {
       throw new Error(`${response.status} ${response.statusText}`)
@@ -1200,7 +1257,7 @@ async function sendRequest() {
 
     // Switch to response tab
     document.querySelector('[data-tab="response"]').click()
-  } catch (error) {
+  } catch (error) {    
     const responseContainer = document.getElementById("responseContainer")
     responseContainer.innerHTML = `
             <div class="response-error">
