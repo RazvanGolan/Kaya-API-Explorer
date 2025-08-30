@@ -74,7 +74,6 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
-// Shared Key-Value Editor Helper Functions
 function createKeyValueField(containerId, key = '', value = '', config = {}) {
   const fieldsContainer = document.getElementById(containerId);
   
@@ -1014,33 +1013,6 @@ function copyResponseToClipboard(button) {
       `;
     }, 2000);
   });
-}
-
-function toggleRequestBodyEditor(jsonEditorId, keyValueEditorId, mode) {
-  const jsonEditor = document.getElementById(jsonEditorId);
-  const keyValueEditor = document.getElementById(keyValueEditorId);
-  
-  if (mode === 'json') {
-    if (keyValueEditor.style.display !== 'none') {
-      const keyValueData = getKeyValueData(keyValueEditorId);
-      if (Object.keys(keyValueData).length > 0) {
-        jsonEditor.value = JSON.stringify(keyValueData, null, 2);
-      }
-    }
-    
-    jsonEditor.style.display = 'block';
-    keyValueEditor.style.display = 'none';
-  } else {
-    try {
-      const jsonData = JSON.parse(jsonEditor.value || '{}');
-      populateKeyValueEditor(keyValueEditorId, jsonData);
-    } catch (e) {
-      populateKeyValueEditor(keyValueEditorId, {});
-    }
-    
-    jsonEditor.style.display = 'none';
-    keyValueEditor.style.display = 'block';
-  }
 }
 
 function populateKeyValueEditor(keyValueEditorId, data) {
