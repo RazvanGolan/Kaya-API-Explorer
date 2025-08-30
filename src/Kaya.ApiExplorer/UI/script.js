@@ -74,6 +74,88 @@ function escapeHtml(text) {
     .replace(/'/g, '&#39;');
 }
 
+// Shared Key-Value Editor Helper Functions
+function createKeyValueField(containerId, key = '', value = '', config = {}) {
+  const fieldsContainer = document.getElementById(containerId);
+  
+  const fieldRow = document.createElement('div');
+  fieldRow.className = config.rowClassName || 'tryout-parameter-row';
+  if (config.rowStyle) {
+    fieldRow.style.cssText = config.rowStyle;
+  } else {
+    fieldRow.style.marginBottom = '8px';
+  }
+  
+  let valueStr = value;
+  if (typeof value === 'object' && value !== null) {
+    valueStr = JSON.stringify(value);
+  } else if (typeof value !== 'string') {
+    valueStr = String(value);
+  }
+  
+  const escapedKey = escapeHtml(key);
+  const escapedValue = escapeHtml(valueStr);
+  
+  const removeButtonClass = config.removeButtonClass || 'remove-header';
+  const removeButtonStyle = config.removeButtonStyle || 'background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;';
+  const removeFunctionName = config.removeFunctionName || 'removeKeyValueField';
+  const onChangeHandler = config.onChangeHandler ? `onchange="${config.onChangeHandler}"` : '';
+  
+  fieldRow.innerHTML = `
+    <input type="text" placeholder="Field name" value="${escapedKey}" class="header-input" style="flex: 1; margin-right: 8px;" ${onChangeHandler}>
+    <input type="text" placeholder="Field value" value="${escapedValue}" class="header-input" style="flex: 2; margin-right: 8px;" ${onChangeHandler}>
+    <button type="button" class="${removeButtonClass}" onclick="${removeFunctionName}(this)" style="${removeButtonStyle}">&times;</button>
+  `;
+  
+  fieldsContainer.appendChild(fieldRow);
+}
+
+function populateKeyValueContainer(containerId, data, config = {}) {
+  const fieldsContainer = document.getElementById(containerId);
+  fieldsContainer.innerHTML = '';
+  
+  Object.entries(data).forEach(([key, value]) => {
+    createKeyValueField(containerId, key, value, config);
+  });
+  
+  if (Object.keys(data).length === 0) {
+    createKeyValueField(containerId, '', '', config);
+  }
+}
+
+function parseKeyValueData(containerId) {
+  const fieldsContainer = document.getElementById(containerId);
+  const data = {};
+  
+  Array.from(fieldsContainer.children).forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    const key = inputs[0].value.trim();
+    const value = inputs[1].value.trim();
+    
+    if (key) {
+      try {
+        data[key] = JSON.parse(value);
+      } catch (e) {
+        if (value === 'true') {
+          data[key] = true;
+        } else if (value === 'false') {
+          data[key] = false;
+        } else if (value === 'null') {
+          data[key] = null;
+        } else if (value === '') {
+          data[key] = '';
+        } else if (!isNaN(value) && !isNaN(parseFloat(value)) && value !== '') {
+          data[key] = parseFloat(value);
+        } else {
+          data[key] = value;
+        }
+      }
+    }
+  });
+  
+  return data;
+}
+
 function getInitialTheme() {
   console.log(window.KayaApiExplorerConfig)
   if (window.KayaApiExplorerConfig && window.KayaApiExplorerConfig.defaultTheme) {
@@ -962,16 +1044,11 @@ function toggleRequestBodyEditor(jsonEditorId, keyValueEditorId, mode) {
 }
 
 function populateKeyValueEditor(keyValueEditorId, data) {
-  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
-  fieldsContainer.innerHTML = '';
-  
-  Object.entries(data).forEach(([key, value]) => {
-    addRequestBodyFieldWithValue(keyValueEditorId, key, value);
-  });
-  
-  if (Object.keys(data).length === 0) {
-    addRequestBodyField(keyValueEditorId);
-  }
+  const config = {
+    onChangeHandler: `updateRequestBodyField('${keyValueEditorId}')`,
+    removeFunctionName: 'removeRequestBodyField'
+  };
+  populateKeyValueContainer(`${keyValueEditorId}-fields`, data, config);
 }
 
 function addRequestBodyField(keyValueEditorId) {
@@ -979,27 +1056,11 @@ function addRequestBodyField(keyValueEditorId) {
 }
 
 function addRequestBodyFieldWithValue(keyValueEditorId, key = '', value = '') {
-  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
-  const fieldIndex = fieldsContainer.children.length;
-  
-  const fieldRow = document.createElement('div');
-  fieldRow.className = 'tryout-parameter-row';
-  fieldRow.style.marginBottom = '8px';
-  
-  let valueStr = value;
-  if (typeof value === 'object' && value !== null) {
-    valueStr = JSON.stringify(value);
-  } else if (typeof value !== 'string') {
-    valueStr = String(value);
-  }
-  
-  fieldRow.innerHTML = `
-    <input type="text" placeholder="Field name" value="${key}" class="header-input" style="flex: 1; margin-right: 8px;" onchange="updateRequestBodyField('${keyValueEditorId}')">
-    <input type="text" placeholder="Field value" value="${valueStr}" class="header-input" style="flex: 2; margin-right: 8px;" onchange="updateRequestBodyField('${keyValueEditorId}')">
-    <button type="button" class="remove-header" onclick="removeRequestBodyField(this, '${keyValueEditorId}')" style="background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;">&times;</button>
-  `;
-  
-  fieldsContainer.appendChild(fieldRow);
+  const config = {
+    onChangeHandler: `updateRequestBodyField('${keyValueEditorId}')`,
+    removeFunctionName: 'removeRequestBodyField'
+  };
+  createKeyValueField(`${keyValueEditorId}-fields`, key, value, config);
 }
 
 function removeRequestBodyField(button, keyValueEditorId) {
@@ -1007,34 +1068,7 @@ function removeRequestBodyField(button, keyValueEditorId) {
 }
 
 function getKeyValueData(keyValueEditorId) {
-  const fieldsContainer = document.getElementById(`${keyValueEditorId}-fields`);
-  const data = {};
-  
-  Array.from(fieldsContainer.children).forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    const key = inputs[0].value.trim();
-    const value = inputs[1].value.trim();
-    
-    if (key) {
-      try {
-        data[key] = JSON.parse(value);
-      } catch (e) {
-        if (value === 'true') {
-          data[key] = true;
-        } else if (value === 'false') {
-          data[key] = false;
-        } else if (value === 'null') {
-          data[key] = null;
-        } else if (!isNaN(value) && !isNaN(parseFloat(value))) {
-          data[key] = parseFloat(value);
-        } else {
-          data[key] = value;
-        }
-      }
-    }
-  });
-  
-  return data;
+  return parseKeyValueData(`${keyValueEditorId}-fields`);
 }
 
 function switchBodyEditorMode() {
@@ -1096,16 +1130,12 @@ function switchTryItOutBodyEditorMode(jsonEditorId, keyValueEditorId) {
 }
 
 function populateRequestBuilderKeyValueEditor(data) {
-  const fieldsContainer = document.getElementById('requestBodyKvFields');
-  fieldsContainer.innerHTML = '';
-  
-  Object.entries(data).forEach(([key, value]) => {
-    addRequestBuilderBodyFieldWithValue(key, value);
-  });
-  
-  if (Object.keys(data).length === 0) {
-    addRequestBuilderBodyField();
-  }
+  const config = {
+    rowClassName: 'kv-field-row',
+    removeButtonClass: 'kv-remove-btn',
+    removeFunctionName: 'removeRequestBuilderBodyField'
+  };
+  populateKeyValueContainer('requestBodyKvFields', data, config);
 }
 
 function addRequestBuilderBodyField() {
@@ -1113,25 +1143,12 @@ function addRequestBuilderBodyField() {
 }
 
 function addRequestBuilderBodyFieldWithValue(key = '', value = '') {
-  const fieldsContainer = document.getElementById('requestBodyKvFields');
-  
-  const fieldRow = document.createElement('div');
-  fieldRow.className = 'kv-field-row';
-  
-  let valueStr = value;
-  if (typeof value === 'object' && value !== null) {
-    valueStr = JSON.stringify(value);
-  } else if (typeof value !== 'string') {
-    valueStr = String(value);
-  }
-  
-  fieldRow.innerHTML = `
-    <input type="text" placeholder="Field name" value="${key}" class="header-input" style="flex: 1; margin-right: 8px;">
-    <input type="text" placeholder="Field value" value="${valueStr}" class="header-input" style="flex: 2; margin-right: 8px;">
-    <button type="button" class="kv-remove-btn" onclick="removeRequestBuilderBodyField(this)">&times;</button>
-  `;
-  
-  fieldsContainer.appendChild(fieldRow);
+  const config = {
+    rowClassName: 'kv-field-row',
+    removeButtonClass: 'kv-remove-btn',
+    removeFunctionName: 'removeRequestBuilderBodyField'
+  };
+  createKeyValueField('requestBodyKvFields', key, value, config);
 }
 
 function removeRequestBuilderBodyField(button) {
@@ -1139,34 +1156,7 @@ function removeRequestBuilderBodyField(button) {
 }
 
 function getRequestBuilderKeyValueData() {
-  const fieldsContainer = document.getElementById('requestBodyKvFields');
-  const data = {};
-  
-  Array.from(fieldsContainer.children).forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    const key = inputs[0].value.trim();
-    const value = inputs[1].value.trim();
-    
-    if (key) {
-      try {
-        data[key] = JSON.parse(value);
-      } catch (e) {
-        if (value === 'true') {
-          data[key] = true;
-        } else if (value === 'false') {
-          data[key] = false;
-        } else if (value === 'null') {
-          data[key] = null;
-        } else if (!isNaN(value) && !isNaN(parseFloat(value))) {
-          data[key] = parseFloat(value);
-        } else {
-          data[key] = value;
-        }
-      }
-    }
-  });
-  
-  return data;
+  return parseKeyValueData('requestBodyKvFields');
 }
 
 function updateHeader(index, field, value) {
