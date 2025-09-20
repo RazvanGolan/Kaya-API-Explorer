@@ -18,7 +18,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Initial release of Kaya API Explorer - A lightweight alternative to Swagger with automatic endpoint discovery and beautiful UI.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.1.0: Added performance monitoring with real-time request duration and data size tracking. Includes bug fixes for complex object handling in Key-Value editor, improved JSON parsing, and enhanced error handling.</PackageReleaseNotes>
   </PropertyGroup>  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

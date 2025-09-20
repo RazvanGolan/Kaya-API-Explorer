@@ -527,9 +527,6 @@ body {
 }
 
 .copy-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   background: none;
   border: none;
   cursor: pointer;
@@ -540,6 +537,21 @@ body {
 }
 
 .copy-btn:hover {
+  background-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+.save-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+
+.save-btn:hover {
   background-color: var(--border-primary);
   color: var(--text-primary);
 }

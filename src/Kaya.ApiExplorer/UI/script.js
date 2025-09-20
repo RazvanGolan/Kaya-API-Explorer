@@ -623,12 +623,21 @@ function renderRequest(endpoint) {
                 <span class="badge">${escapedType}</span>
             </div>
             <div class="code-block">
-                <button class="copy-btn" onclick="copyToClipboard(this)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                </button>
+                <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+                    <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button class="copy-btn save-btn" onclick="saveToFile(this, 'request-body')" title="Save to file">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                            <polyline points="7,3 7,8 15,8"></polyline>
+                        </svg>
+                    </button>
+                </div>
                 <pre><code>${endpoint.requestBody.example}</code></pre>
             </div>
         </div>
@@ -649,12 +658,21 @@ function renderResponses(endpoint) {
         <span class="badge">${escapedType}</span>
       </div>
       <div class="code-block">
-        <button class="copy-btn" onclick="copyToClipboard(this)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-        </button>
+        <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+          <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+          <button class="copy-btn save-btn" onclick="saveToFile(this, 'response-body')" title="Save to file">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17,21 17,13 7,13 7,21"></polyline>
+              <polyline points="7,3 7,8 15,8"></polyline>
+            </svg>
+          </button>
+        </div>
         <pre><code>${endpoint.response.example}</code></pre>
       </div>
     </div>
@@ -821,19 +839,20 @@ function switchTab(event, endpointId, tabName) {
 }
 
 function copyToClipboard(button) {
-  const codeBlock = button.nextElementSibling
-  const text = codeBlock.textContent
+  const codeBlock = button.parentElement.nextElementSibling;
+  
+  const text = codeBlock.textContent;
   navigator.clipboard.writeText(text).then(() => {
-    button.innerHTML = "✓"
+    button.innerHTML = "✓";
     setTimeout(() => {
       button.innerHTML = `
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
-            `
-    }, 2000)
-  })
+            `;
+    }, 2000);
+  });
 }
 
 function addHeader() {
@@ -975,12 +994,28 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
         <div class="response-body">
           <h6>Response Body</h6>
           <div style="position: relative;">
-            <button class="copy-btn" onclick="copyResponseToClipboard(this)" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
+            <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+              <button class="copy-btn" onclick="copyResponseToClipboard(this)" title="Copy to clipboard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              <button class="copy-btn save-btn" 
+                      onclick="saveToFile(this, 'api-response')" 
+                      data-endpoint='${JSON.stringify({
+                        httpMethodType: endpoint.httpMethodType,
+                        path: endpoint.path,
+                        methodName: endpoint.methodName
+                      })}' 
+                      title="Save to file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                  <polyline points="7,3 7,8 15,8"></polyline>
+                </svg>
+              </button>
+            </div>
             <pre class="response-body-pre">${typeof responseData === 'object' ? JSON.stringify(responseData, null, 2) : responseData}</pre>
           </div>
         </div>
@@ -1013,6 +1048,53 @@ function copyResponseToClipboard(button) {
       `;
     }, 2000);
   });
+}
+
+function saveToFile(button, type, endpointInfo = null) {
+  const buttonContainer = button.parentElement;
+  let content;
+  
+  if (buttonContainer.nextElementSibling) {
+    // For cases where buttons are in a container (API responses)
+    content = buttonContainer.nextElementSibling.textContent;
+  } else {
+    // For cases where button is directly positioned (static examples) 
+    content = button.nextElementSibling.textContent;
+  }
+  
+  if (!endpointInfo && button.dataset.endpoint) {
+    try {
+      endpointInfo = JSON.parse(button.dataset.endpoint);
+    } catch (e) {
+      console.warn('Failed to parse endpoint data:', e);
+    }
+  }
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  let filename;
+  
+  if (endpointInfo) {
+    const method = endpointInfo.httpMethodType.toLowerCase();
+    const pathName = endpointInfo.path.replace(/[{}/]/g, '').replace(/\//g, '-').replace(/^-+|-+$/g, '');
+    const cleanMethodName = endpointInfo.methodName.replace(/[^a-zA-Z0-9]/g, '');
+    filename = `${method}-${pathName || cleanMethodName}-${type}-${timestamp}.json`;
+  } else {
+    filename = `${type}-${timestamp}.json`;
+  }
+  
+  const blob = new Blob([content], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  const originalIcon = button.innerHTML;
+  button.innerHTML = "✓";
+  setTimeout(() => {
+    button.innerHTML = originalIcon;
+  }, 2000);
 }
 
 function populateKeyValueEditor(keyValueEditorId, data) {
@@ -1201,6 +1283,14 @@ async function sendRequest() {
     const responseContainer = document.getElementById("responseContainer")
 
     if (response.ok) {
+      let formattedResponse;
+      try {
+        const jsonData = JSON.parse(responseText);
+        formattedResponse = JSON.stringify(jsonData, null, 2);
+      } catch (e) {
+        formattedResponse = responseText;
+      }
+      
       responseContainer.innerHTML = `
                 <div class="response-success">
                     <div class="response-status">
@@ -1208,7 +1298,24 @@ async function sendRequest() {
                     </div>
                     <div class="response-body">
                         <h5>Response Body</h5>
-                        <pre>${responseText}</pre>
+                        <div style="position: relative;">
+                            <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+                                <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                <button class="copy-btn save-btn" onclick="saveToFile(this, 'request-builder-response')" title="Save to file">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                                        <polyline points="7,3 7,8 15,8"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                            <pre style="background-color: var(--bg-tertiary); color: var(--text-primary); padding: 12px; border-radius: 6px; margin: 0; transition: all 0.3s ease;">${formattedResponse}</pre>
+                        </div>
                     </div>
                 </div>
                 ${generatePerformanceHtml(duration, requestSize, responseSize, response.status)}
