@@ -1246,3 +1246,80 @@ body {
   margin: 0;
   transition: all 0.3s ease;
 }
+
+.export-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.export-tab-list {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+}
+
+.export-tab {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.export-tab:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.export-tab.active {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 2px 4px var(--shadow-light);
+}
+
+.export-code-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.export-code-block {
+  flex: 1;
+  padding: 16px;
+  margin: 0;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 400px;
+  border: none;
+  resize: none;
+  transition: all 0.3s ease;
+}
+
+.export-code-block:focus {
+  outline: none;
+}
+
+.btn.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}

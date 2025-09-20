@@ -24,6 +24,248 @@ const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
 
+function generateCurlCode(url, method, headers, body) {
+  let curlCommand = `curl -X ${method.toUpperCase()} "${url}"`;
+  
+  Object.entries(headers).forEach(([key, value]) => {
+    curlCommand += ` \\\n  -H "${key}: ${value}"`;
+  });
+  
+  if (body && method.toUpperCase() !== 'GET') {
+    curlCommand += ` \\\n  -d '${body}'`;
+  }
+  
+  return curlCommand;
+}
+
+function generateJavaScriptCode(url, method, headers, body) {
+  const headersObj = JSON.stringify(headers, null, 2);
+  
+  let code = `const response = await fetch('${url}', {\n  method: '${method.toUpperCase()}',\n  headers: ${headersObj}`;
+  
+  if (body && method.toUpperCase() !== 'GET') {
+    code += `,\n  body: ${JSON.stringify(body)}`;
+  }
+  
+  code += '\n});\n\nconst data = await response.json();\nconsole.log(data);';
+  
+  return code;
+}
+
+function generatePythonCode(url, method, headers, body) {
+  let code = 'import requests\nimport json\n\n';
+  code += `url = "${url}"\n`;
+  code += `headers = ${JSON.stringify(headers, null, 2).replace(/"/g, "'")}\n`;
+  
+  if (body && method.toUpperCase() !== 'GET') {
+    code += `data = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}\n\n`;
+    code += `response = requests.${method.toLowerCase()}(url, headers=headers, json=data)\n`;
+  } else {
+    code += `\nresponse = requests.${method.toLowerCase()}(url, headers=headers)\n`;
+  }
+  
+  code += 'print(response.status_code)\nprint(response.json())';
+  
+  return code;
+}
+
+function generateRubyCode(url, method, headers, body) {
+  let code = "require 'net/http'\nrequire 'json'\nrequire 'uri'\n\n";
+  code += `uri = URI('${url}')\n`;
+  code += `http = Net::HTTP.new(uri.host, uri.port)\n`;
+  
+  if (url.startsWith('https')) {
+    code += 'http.use_ssl = true\n';
+  }
+  
+  code += `\nrequest = Net::HTTP::${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}.new(uri)\n`;
+  
+  Object.entries(headers).forEach(([key, value]) => {
+    code += `request['${key}'] = '${value}'\n`;
+  });
+  
+  if (body && method.toUpperCase() !== 'GET') {
+    code += `request.body = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}.to_json\n`;
+  }
+  
+  code += '\nresponse = http.request(request)\nputs response.code\nputs response.body';
+  
+  return code;
+}
+
+function generateCSharpCode(url, method, headers, body) {
+  let code = 'using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\n';
+  code += 'class Program\n{\n    static async Task Main(string[] args)\n    {\n';
+  code += '        using var client = new HttpClient();\n';
+  
+  Object.entries(headers).forEach(([key, value]) => {
+    if (key.toLowerCase() !== 'content-type') {
+      code += `        client.DefaultRequestHeaders.Add("${key}", "${value}");\n`;
+    }
+  });
+  
+  code += `\n        var url = "${url}";\n`;
+  
+  if (body && method.toUpperCase() !== 'GET') {
+    code += `        var json = ${JSON.stringify(body, null, 8)};\n`;
+    code += '        var content = new StringContent(json, Encoding.UTF8, "application/json");\n\n';
+    code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url, content);\n`;
+  } else {
+    code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url);\n`;
+  }
+  
+  code += '\n        var responseContent = await response.Content.ReadAsStringAsync();\n';
+  code += '        Console.WriteLine($"Status: {response.StatusCode}");\n';
+  code += '        Console.WriteLine($"Content: {responseContent}");\n';
+  code += '    }\n}';
+  
+  return code;
+}
+
+function buildRequestData(config) {
+  const {
+    endpoint,
+    endpointIdentifier,
+    baseUrl,
+    customHeaders = {},
+    includeAuth = true,
+    validateBody = false,
+    allowEmptyPathParams = false
+  } = config;
+
+  let finalUrl = endpoint ? endpoint.path : baseUrl;
+  
+  if (endpoint && endpoint.parameters) {
+    const pathParams = endpoint.parameters.filter(p => p.source === "Route") || [];
+    
+    pathParams.forEach(param => {
+      let paramValue = '';
+      if (endpointIdentifier) {
+        paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
+      }
+      
+      if (!paramValue && !allowEmptyPathParams) {
+        paramValue = `{${param.name}}`;
+      }
+      
+      if (paramValue) {
+        finalUrl = finalUrl.replace(`{${param.name}}`, paramValue);
+      }
+    });
+    
+    const queryParams = endpoint.parameters.filter(p => p.source === "Query") || [];
+    const queryString = new URLSearchParams();
+    
+    queryParams.forEach(param => {
+      if (endpointIdentifier) {
+        const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
+        if (paramValue) {
+          queryString.append(param.name, paramValue);
+        }
+      }
+    });
+    
+    if (queryString.toString()) {
+      finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString.toString();
+    }
+  }
+  
+  if (!finalUrl.startsWith('http')) {
+    finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
+  }
+  
+  const headers = { 'Content-Type': 'application/json', ...customHeaders };
+  
+  if (endpoint && endpoint.parameters && endpointIdentifier) {
+    const headerParams = endpoint.parameters.filter(p => p.source === "Header") || [];
+    headerParams.forEach(param => {
+      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
+      if (paramValue) {
+        headers[param.name] = paramValue;
+      }
+    });
+  }
+  
+  if (includeAuth) {
+    const authHeaders = getAuthHeaders();
+    Object.keys(authHeaders).forEach(key => {
+      if (!headers[key]) {
+        headers[key] = authHeaders[key];
+      }
+    });
+  }
+  
+  let requestBody = null;
+  const method = endpoint ? endpoint.httpMethodType : 'GET';
+  
+  if (method !== 'GET' && endpoint && endpoint.requestBody && endpointIdentifier) {
+    const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
+    const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
+    
+    let requestBodyContent = '';
+    
+    if (keyValueEditor && keyValueEditor.style.display !== 'none') {
+      const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
+      if (Object.keys(keyValueData).length > 0) {
+        requestBodyContent = JSON.stringify(keyValueData);
+      }
+    } else if (bodyTextarea && bodyTextarea.value.trim()) {
+      requestBodyContent = bodyTextarea.value.trim();
+    }
+    
+    if (requestBodyContent) {
+      if (validateBody) {
+        try {
+          if (headers['Content-Type'].includes('json')) {
+            JSON.parse(requestBodyContent);
+          }
+        } catch (e) {
+          throw new Error('Invalid JSON in request body: ' + e.message);
+        }
+      }
+      requestBody = requestBodyContent;
+    }
+  }
+  
+  return {
+    url: finalUrl,
+    method: method,
+    headers: headers,
+    body: requestBody,
+    requestOptions: {
+      method: method,
+      headers: headers,
+      ...(requestBody && { body: requestBody })
+    }
+  };
+}
+
+function buildRequestDataForExport(controllerName, endpointIndex) {
+  const controller = controllers.find(c => c.name === controllerName);
+  if (!controller) return null;
+  
+  const endpoint = controller.endpoints[endpointIndex];
+  if (!endpoint) return null;
+  
+  const endpointIdentifier = `${controllerName}-${endpointIndex}`;
+  
+  try {
+    const requestData = buildRequestData({
+      endpoint: endpoint,
+      endpointIdentifier: endpointIdentifier,
+      allowEmptyPathParams: true
+    });
+    
+    return {
+      ...requestData,
+      endpoint: endpoint
+    };
+  } catch (error) {
+    console.error('Error building request data for export:', error);
+    return null;
+  }
+}
+
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B'
   const k = 1024
@@ -688,12 +930,23 @@ function renderTryItOut(endpoint, index) {
         <div>
             ${parametersSection}
             ${requestBodySection}
-            <button class="btn btn-primary" style="width: 100%;" onclick="executeEndpointById('${selectedController}', ${index})">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="5,3 19,12 5,21 5,3"></polygon>
-                </svg>
-                Execute Request
-            </button>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn btn-primary" style="flex: 1;" onclick="executeEndpointById('${selectedController}', ${index})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5,3 19,12 5,21 5,3"></polygon>
+                    </svg>
+                    Execute Request
+                </button>
+                <button class="btn btn-secondary" onclick="showExportModal('${selectedController}', ${index})" title="Export request as code">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="16,16 12,12 8,16"></polyline>
+                        <line x1="12" y1="12" x2="12" y2="21"></line>
+                        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                        <polyline points="16,16 12,12 8,16"></polyline>
+                    </svg>
+                    Export
+                </button>
+            </div>
             <div id="tryout-response-${endpointIdentifier}" class="response-container" style="margin-top: 16px; display: none;">
                 <!-- Response will be displayed here -->
             </div>
@@ -891,78 +1144,11 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
   const startTime = performance.now();
 
   try {
-    let finalUrl = endpoint.path;
-    const pathParams = endpoint.parameters?.filter(p => p.source === "Route") || [];
-
-    pathParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value || '';
-      if (paramValue) {
-        finalUrl = finalUrl.replace(`{${param.name}}`, paramValue);
-      }
+    const { url: finalUrl, requestOptions } = buildRequestData({
+      endpoint: endpoint,
+      endpointIdentifier: endpointIdentifier,
+      validateBody: true
     });
-    const queryParams = endpoint.parameters?.filter(p => p.source === "Query") || [];
-    const queryString = new URLSearchParams();
-    
-    queryParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
-      if (paramValue) {
-        queryString.append(param.name, paramValue);
-      }
-    });
-
-    if (queryString.toString()) {
-      finalUrl += (finalUrl.includes('?') ? '&' : '?') + queryString.toString();
-    }
-
-    const headers = { 'Content-Type': 'application/json' };
-    
-    const headerParams = endpoint.parameters?.filter(p => p.source === "Header") || [];
-    headerParams.forEach(param => {
-      const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
-      if (paramValue) {
-        headers[param.name] = paramValue;
-      }
-    });
-
-    const authHeaders = getAuthHeaders();
-    Object.keys(authHeaders).forEach(key => {
-      if (!headers[key]) {
-        headers[key] = authHeaders[key];
-      }
-    });
-
-
-    const requestOptions = {
-      method: endpoint.httpMethodType,
-      headers: headers
-    };
-
-    if (endpoint.httpMethodType !== 'GET' && endpoint.requestBody) {
-      const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
-      const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
-      
-      let requestBodyContent = '';
-      
-      if (keyValueEditor && keyValueEditor.style.display !== 'none') {
-        const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
-        if (Object.keys(keyValueData).length > 0) {
-          requestBodyContent = JSON.stringify(keyValueData);
-        }
-      } else if (bodyTextarea && bodyTextarea.value.trim()) {
-        requestBodyContent = bodyTextarea.value.trim();
-      }
-      
-      if (requestBodyContent) {
-        try {
-          if (headers['Content-Type'].includes('json')) {
-            JSON.parse(requestBodyContent);
-          }
-          requestOptions.body = requestBodyContent;
-        } catch (e) {
-          throw new Error('Invalid JSON in request body: ' + e.message);
-        }
-      }
-    }
 
     const response = await fetch(finalUrl, requestOptions);
     const responseText = await response.text();
@@ -1213,6 +1399,22 @@ function getRequestBuilderKeyValueData() {
   return parseKeyValueData('requestBodyKvFields');
 }
 
+function getRequestBuilderBodyContent() {
+  const bodyEditorMode = document.getElementById("bodyEditorMode").value;
+  const body = document.getElementById("requestBody").value;
+  
+  if (bodyEditorMode === 'keyvalue') {
+    const keyValueData = getRequestBuilderKeyValueData();
+    if (Object.keys(keyValueData).length > 0) {
+      return JSON.stringify(keyValueData);
+    }
+  } else if (body) {
+    return body;
+  }
+  
+  return '';
+}
+
 function updateHeader(index, field, value) {
   requestHeaders[index][field] = value
 }
@@ -1225,9 +1427,7 @@ function removeHeader(index) {
 async function sendRequest() {
   const method = document.getElementById("requestMethod").value
   const url = document.getElementById("requestUrl").value
-  const body = document.getElementById("requestBody").value
   const sendBtn = document.getElementById("sendRequestBtn")
-  const bodyEditorMode = document.getElementById("bodyEditorMode").value
 
   sendBtn.textContent = "Sending..."
   sendBtn.disabled = true
@@ -1235,49 +1435,34 @@ async function sendRequest() {
   const startTime = performance.now();
 
   try {
-    const headers = {}
+    const customHeaders = {}
     requestHeaders.forEach((header) => {
       if (header.key && header.value) {
-        headers[header.key] = header.value
+        customHeaders[header.key] = header.value
       }
     })
 
-    const authHeaders = getAuthHeaders()
-    Object.keys(authHeaders).forEach(key => {
-      if (!headers[key]) {
-        headers[key] = authHeaders[key];
-      }
-    })
+    const { requestOptions } = buildRequestData({
+      baseUrl: url,
+      customHeaders: customHeaders,
+      includeAuth: true
+    });
 
-
-    const options = {
-      method,
-      headers,
-    }
+    requestOptions.method = method;
 
     if (method !== "GET") {
-      let requestBodyContent = '';
-      
-      if (bodyEditorMode === 'keyvalue') {
-        const keyValueData = getRequestBuilderKeyValueData();
-        if (Object.keys(keyValueData).length > 0) {
-          requestBodyContent = JSON.stringify(keyValueData);
-        }
-      } else if (body) {
-        requestBodyContent = body;
-      }
-      
+      const requestBodyContent = getRequestBuilderBodyContent();
       if (requestBodyContent) {
-        options.body = requestBodyContent;
+        requestOptions.body = requestBodyContent;
       }
     }
 
-    const response = await fetch(url, options)
+    const response = await fetch(url, requestOptions)
     const responseText = await response.text()
 
     const endTime = performance.now();
     const duration = Math.round(endTime - startTime);
-    const requestSize = options.body ? new Blob([options.body]).size : 0;
+    const requestSize = requestOptions.body ? new Blob([requestOptions.body]).size : 0;
     const responseSize = new Blob([responseText]).size;
 
     const responseContainer = document.getElementById("responseContainer")
@@ -1439,6 +1624,158 @@ function filterControllers() {
   renderEndpoints()
 }
 
+function showExportModal(controllerName, endpointIndex) {
+  const requestData = buildRequestDataForExport(controllerName, endpointIndex);
+  if (!requestData) {
+    alert('Unable to generate export data');
+    return;
+  }
+  
+  showGenericExportModal(requestData, 'endpoint');
+}
+
+function showRequestBuilderExportModal() {
+  const requestData = buildRequestBuilderExportData();
+  showGenericExportModal(requestData, 'requestBuilder');
+}
+
+function showGenericExportModal(requestData, type = 'endpoint') {
+  if (type === 'requestBuilder') {
+    window.currentRequestBuilderExportData = requestData;
+  } else {
+    window.currentExportData = requestData;
+  }
+  
+  updateExportCode('curl', type);
+  
+  const modalId = type === 'requestBuilder' ? 'requestBuilderExportModal' : 'exportModal';
+  document.getElementById(modalId).classList.add('show');
+}
+
+function updateExportCode(format, type = 'endpoint') {
+  const dataKey = type === 'requestBuilder' ? 'currentRequestBuilderExportData' : 'currentExportData';
+  if (!window[dataKey]) return;
+  
+  const { url, method, headers, body } = window[dataKey];
+  let code = '';
+  
+  switch (format) {
+    case 'curl':
+      code = generateCurlCode(url, method, headers, body);
+      break;
+    case 'javascript':
+      code = generateJavaScriptCode(url, method, headers, body);
+      break;
+    case 'python':
+      code = generatePythonCode(url, method, headers, body);
+      break;
+    case 'ruby':
+      code = generateRubyCode(url, method, headers, body);
+      break;
+    case 'csharp':
+      code = generateCSharpCode(url, method, headers, body);
+      break;
+    default:
+      code = 'Format not supported';
+  }
+  
+  const codeContentId = type === 'requestBuilder' ? 'requestBuilderExportCodeContent' : 'exportCodeContent';
+  document.getElementById(codeContentId).textContent = code;
+  
+  const modalId = type === 'requestBuilder' ? 'requestBuilderExportModal' : 'exportModal';
+  const modal = document.getElementById(modalId);
+  modal.querySelectorAll('.export-tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  modal.querySelector(`[data-export-format="${format}"]`).classList.add('active');
+}
+
+function copyExportCode(type = 'endpoint') {
+  const codeContentId = type === 'requestBuilder' ? 'requestBuilderExportCodeContent' : 'exportCodeContent';
+  const buttonId = type === 'requestBuilder' ? 'copyRequestBuilderExportBtn' : 'copyExportBtn';
+  
+  const codeContent = document.getElementById(codeContentId).textContent;
+  navigator.clipboard.writeText(codeContent).then(() => {
+    const button = document.getElementById(buttonId);
+    const originalText = button.innerHTML;
+    button.innerHTML = '✓';
+    setTimeout(() => {
+      button.innerHTML = originalText;
+    }, 2000);
+  });
+}
+
+function downloadExportCode(type = 'endpoint') {
+  const modalId = type === 'requestBuilder' ? 'requestBuilderExportModal' : 'exportModal';
+  const codeContentId = type === 'requestBuilder' ? 'requestBuilderExportCodeContent' : 'exportCodeContent';
+  const buttonId = type === 'requestBuilder' ? 'downloadRequestBuilderExportBtn' : 'downloadExportBtn';
+  
+  const modal = document.getElementById(modalId);
+  const format = modal.querySelector('.export-tab.active').dataset.exportFormat;
+  const codeContent = document.getElementById(codeContentId).textContent;
+  
+  const extensions = {
+    curl: 'sh',
+    javascript: 'js',
+    python: 'py',
+    ruby: 'rb',
+    csharp: 'cs'
+  };
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const prefix = type === 'requestBuilder' ? 'request-builder' : 'api-request';
+  const filename = `${prefix}-${format}-${timestamp}.${extensions[format] || 'txt'}`;
+  
+  const blob = new Blob([codeContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  const button = document.getElementById(buttonId);
+  const originalText = button.innerHTML;
+  button.innerHTML = '✓';
+  setTimeout(() => {
+    button.innerHTML = originalText;
+  }, 2000);
+}
+
+function buildRequestBuilderExportData() {
+  const method = document.getElementById("requestMethod").value;
+  const url = document.getElementById("requestUrl").value;
+  
+  const customHeaders = { 'Content-Type': 'application/json' };
+  requestHeaders.forEach((header) => {
+    if (header.key && header.value) {
+      customHeaders[header.key] = header.value;
+    }
+  });
+  
+  const authHeaders = getAuthHeaders();
+  Object.keys(authHeaders).forEach(key => {
+    if (!customHeaders[key]) {
+      customHeaders[key] = authHeaders[key];
+    }
+  });
+  
+  let requestBody = null;
+  if (method !== "GET") {
+    const requestBodyContent = getRequestBuilderBodyContent();
+    if (requestBodyContent) {
+      requestBody = requestBodyContent;
+    }
+  }
+  
+  return {
+    url: url,
+    method: method,
+    headers: customHeaders,
+    body: requestBody
+  };
+}
+
 function showModal(modalId) {
   document.getElementById(modalId).classList.add("show")
 }
@@ -1490,6 +1827,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   document.getElementById("closeRequestBuilder").addEventListener("click", () => hideModal("requestBuilderModal"))
   document.getElementById("closeAuth").addEventListener("click", () => hideModal("authModal"))
+  document.getElementById("closeExport").addEventListener("click", () => hideModal("exportModal"))
+  document.getElementById("closeRequestBuilderExport").addEventListener("click", () => hideModal("requestBuilderExportModal"))
 
   document.getElementById("addHeaderBtn").addEventListener("click", addHeader)
   document.getElementById("sendRequestBtn").addEventListener("click", sendRequest)

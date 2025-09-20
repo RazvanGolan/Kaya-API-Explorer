@@ -125,6 +125,15 @@
                     </select>
                     <input type="text" id="requestUrl" placeholder="Enter request URL" value="https://api.example.com/" class="url-input">
                     <button id="sendRequestBtn" class="btn btn-primary">Send</button>
+                    <button id="exportRequestBuilderBtn" class="btn btn-outline" onclick="showRequestBuilderExportModal()" title="Export request as code">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16,16 12,12 8,16"></polyline>
+                            <line x1="12" y1="12" x2="12" y2="21"></line>
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                            <polyline points="16,16 12,12 8,16"></polyline>
+                        </svg>
+                        Export
+                    </button>
                 </div>
 
                 <div class="tabs">
@@ -297,6 +306,96 @@
                 
                 <div id="authStatus" class="auth-status hidden">
                     <!-- Status will be updated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Code Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <div>
+                    <h3>Export Request Code</h3>
+                    <p>Generate code snippets for various programming languages</p>
+                </div>
+                <button class="modal-close" id="closeExport">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-tabs">
+                    <div class="export-tab-list">
+                        <button class="export-tab active" data-export-format="curl" onclick="updateExportCode('curl')">cURL</button>
+                        <button class="export-tab" data-export-format="javascript" onclick="updateExportCode('javascript')">JavaScript</button>
+                        <button class="export-tab" data-export-format="csharp" onclick="updateExportCode('csharp')">C#</button>
+                        <button class="export-tab" data-export-format="ruby" onclick="updateExportCode('ruby')">Ruby</button>
+                        <button class="export-tab" data-export-format="python" onclick="updateExportCode('python')">Python</button>
+                    </div>
+                    
+                    <div class="export-code-container">
+                        <div style="position: relative;">
+                            <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+                                <button id="copyExportBtn" class="copy-btn" onclick="copyExportCode()" title="Copy to clipboard">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                <button id="downloadExportBtn" class="copy-btn save-btn" onclick="downloadExportCode()" title="Save to file">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                                        <polyline points="7,3 7,8 15,8"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                            <pre id="exportCodeContent" class="export-code-block">Select a format to generate code</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Builder Export Code Modal -->
+    <div id="requestBuilderExportModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <div>
+                    <h3>Export Request Builder Code</h3>
+                    <p>Generate code snippets for your custom request</p>
+                </div>
+                <button class="modal-close" id="closeRequestBuilderExport">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-tabs">
+                    <div class="export-tab-list">
+                        <button class="export-tab active" data-export-format="curl" onclick="updateExportCode('curl', 'requestBuilder')">cURL</button>
+                        <button class="export-tab" data-export-format="javascript" onclick="updateExportCode('javascript', 'requestBuilder')">JavaScript</button>
+                        <button class="export-tab" data-export-format="csharp" onclick="updateExportCode('csharp', 'requestBuilder')">C#</button>
+                        <button class="export-tab" data-export-format="ruby" onclick="updateExportCode('ruby', 'requestBuilder')">Ruby</button>
+                        <button class="export-tab" data-export-format="python" onclick="updateExportCode('python', 'requestBuilder')">Python</button>
+                    </div>
+                    
+                    <div class="export-code-container">
+                        <div style="position: relative;">
+                            <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+                                <button id="copyRequestBuilderExportBtn" class="copy-btn" onclick="copyExportCode('requestBuilder')" title="Copy to clipboard">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                <button id="downloadRequestBuilderExportBtn" class="copy-btn save-btn" onclick="downloadExportCode('requestBuilder')" title="Save to file">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                        <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                                        <polyline points="7,3 7,8 15,8"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                            <pre id="requestBuilderExportCodeContent" class="export-code-block">Select a format to generate code</pre>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
