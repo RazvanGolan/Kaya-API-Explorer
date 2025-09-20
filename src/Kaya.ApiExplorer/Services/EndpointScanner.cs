@@ -207,6 +207,20 @@ public class EndpointScanner : IEndpointScanner
         if (type.IsEnum) 
             return "0";
 
+        // Handle Dictionary types specifically
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        {
+            var keyType = type.GetGenericArguments()[0];
+            var valueType = type.GetGenericArguments()[1];
+            
+            var keyExample = GenerateExampleJson(keyType, schemas, processedTypes);
+            var valueExample = GenerateExampleJson(valueType, schemas, processedTypes);
+            
+            var jsonKey = keyExample.StartsWith('"') ? keyExample : $"\"{keyExample.Trim('"')}\"";
+            
+            return $"{{{jsonKey}: {valueExample}}}";
+        }
+
         if (IsEnumerableType(type))
         {
             var elementType = type.GetGenericArguments().FirstOrDefault();
@@ -228,6 +242,11 @@ public class EndpointScanner : IEndpointScanner
 
     private static bool IsComplexType(Type type)
     {
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        {
+            return false;
+        }
+        
         return !type.IsPrimitive && 
                type != typeof(string) && 
                type != typeof(DateTime) && 
@@ -349,10 +368,11 @@ public class EndpointScanner : IEndpointScanner
                     var keyExample = GenerateSimpleExample(keyType);
                     var valueExample = GenerateSimpleExample(valueType);
                     
-                    example[property.Name] = new Dictionary<object, object>
-                    {
-                        { keyExample, valueExample }
-                    };
+                    var dictionaryExample = new Dictionary<string, object>();
+                    var keyString = keyExample?.ToString() ?? "key";
+                    dictionaryExample[keyString] = valueExample;
+                    
+                    example[property.Name] = dictionaryExample;
                 }
                 else if (IsEnumerableType(underlyingType))
                 {
@@ -611,6 +631,12 @@ public class EndpointScanner : IEndpointScanner
         if (type == typeof(double)) return "double";
         if (type == typeof(float)) return "float";
         
+        var nullableType = Nullable.GetUnderlyingType(type);
+        if (nullableType != null)
+        {
+            return GetFriendlyTypeName(nullableType) + "?";
+        }
+        
         if (type.IsGenericType)
         {
             var genericTypeDefinition = type.GetGenericTypeDefinition();
@@ -621,6 +647,14 @@ public class EndpointScanner : IEndpointScanner
             if (backtickIndex >= 0)
             {
                 typeName = typeName[..backtickIndex];
+            }
+            
+            // Handle Dictionary types specifically
+            if (genericTypeDefinition == typeof(Dictionary<,>))
+            {
+                var keyType = type.GetGenericArguments()[0];
+                var valueType = type.GetGenericArguments()[1];
+                return $"Dictionary<{GetFriendlyTypeName(keyType)}, {GetFriendlyTypeName(valueType)}>";
             }
             
             if (IsEnumerableType(type))
@@ -635,13 +669,7 @@ public class EndpointScanner : IEndpointScanner
             var argNames = genericArgs.Select(GetFriendlyTypeName);
             return $"{typeName}<{string.Join(", ", argNames)}>";
         }
-
-        var nullableType = Nullable.GetUnderlyingType(type);
-        if (nullableType != null)
-        {
-            return GetFriendlyTypeName(nullableType) + "?";
-        }
-
+        
         return type.Name;
     }
 
