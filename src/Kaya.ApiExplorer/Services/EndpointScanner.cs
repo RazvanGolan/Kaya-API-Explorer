@@ -508,7 +508,7 @@ public class EndpointScanner : IEndpointScanner
             
         httpAttributes.AddRange(allHttpAttrs);
         
-        if (httpAttributes.Count == 0)
+        if (httpAttributes.Count is 0)
         {
             var routeAttr = method.GetCustomAttribute<RouteAttribute>();
             if (routeAttr != null)

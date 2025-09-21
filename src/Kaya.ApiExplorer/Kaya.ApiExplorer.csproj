@@ -6,19 +6,19 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Kaya.ApiExplorer</PackageId>
-    <PackageVersion>1.1.0</PackageVersion>
+    <PackageVersion>1.2.1</PackageVersion>
     <Authors>RazvanGolan</Authors>
     <Company>RazvanGolan</Company>
     <Product>Kaya API Explorer</Product>
-    <Description>A lightweight API documentation tool for .NET applications that automatically scans your HTTP endpoints and displays them in a beautiful, interactive UI. Features automatic endpoint discovery, clean modern interface, detailed parameter and response information, and easy integration into ASP.NET Core applications.</Description>
-    <PackageTags>api;explorer;documentation;endpoints;aspnetcore;middleware;ui;interactive</PackageTags>
+    <Description>A lightweight API documentation tool for .NET applications that automatically scans your HTTP endpoints and displays them in a beautiful, interactive UI. Features automatic endpoint discovery, clean modern interface, detailed parameter and response information, easy integration, code export capabilities, and advanced request building tools.</Description>
+    <PackageTags>api;explorer;documentation;endpoints;aspnetcore;middleware;ui;interactive;</PackageTags>
     <RepositoryUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>Version 1.1.0: Added performance monitoring with real-time request duration and data size tracking. Includes bug fixes for complex object handling in Key-Value editor, improved JSON parsing, and enhanced error handling.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 1.2.1: Fixed major issue where methods with multiple HTTP attributes were incorrectly processed, causing startup failure. Fixed response body horizontal overflow that caused page stretching with long content.</PackageReleaseNotes>
   </PropertyGroup>  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

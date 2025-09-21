@@ -238,4 +238,41 @@ public class UsersController : ControllerBase
             _ => BadRequest("Unsupported method")
         };
     }
+
+    /// <summary>
+    /// Test endpoint that returns a very long response in a single line
+    /// This is used to test the overflow handling in the API Explorer UI
+    /// </summary>
+    /// <returns>A response with extremely long content to test UI overflow behavior</returns>
+    [HttpGet("test-long-response")]
+    public ActionResult<object> GetLongResponse()
+    {
+        var longString = string.Join("", Enumerable.Range(1, 1000).Select(i => $"VeryLongWordNumber{i}WithNoSpacesToBreakTheLineAndCauseHorizontalScrollingIssues"));
+        
+        var longArray = Enumerable.Range(1, 100).Select(i => new
+        {
+            Id = i,
+            VeryLongPropertyNameThatShouldNotBreakTheLayout = $"ExtremelyLongValueWithNoSpaces{i}ThatWouldNormallyStretchTheContainerBeyondItsLimits",
+            AnotherLongProperty = $"ThisIsAnotherVeryLongStringWith{i}NumbersThatShouldBeContainedWithinTheResponseContainer",
+            SingleLineData = longString.Substring(0, Math.Min(500, longString.Length)), // Truncate for each item
+            Metadata = new
+            {
+                ProcessingTime = DateTime.UtcNow,
+                VeryLongMetadataField = "ThisFieldContainsExtremelyLongContentThatWouldNormallyBreakTheUILayoutAndCauseHorizontalScrollingProblemsButShouldBeContainedWithinTheResponseContainer"
+            }
+        }).ToArray();
+
+        return Ok(new
+        {
+            Message = "This response contains extremely long content to test UI overflow behavior",
+            SingleLineLongString = longString,
+            LongArray = longArray,
+            TestData = new
+            {
+                VeryLongPropertyName = "ExtremelyLongValueThatShouldNotBreakTheLayoutOrCauseThePageToStretchBeyondItsNormalBoundariesBecauseOfOverflowConstraints",
+                Instructions = "This endpoint is specifically designed to test how the API Explorer handles very long responses that could potentially break the layout",
+                ExpectedBehavior = "The response should be contained within a scrollable area without stretching the page or breaking the layout"
+            }
+        });
+    }
 }
