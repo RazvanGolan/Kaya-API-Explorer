@@ -212,4 +212,30 @@ public class UsersController : ControllerBase
             UsersByRole = _users.GroupBy(u => u.Role).ToDictionary(g => g.Key.ToString(), g => g.Count())
         });
     }
+
+    /// <summary>
+    /// Test method with multiple HTTP attributes
+    /// This method should appear as two separate endpoints in the API Explorer
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <returns>Different responses based on HTTP method</returns>
+    [HttpGet("test/{id}")]
+    [HttpPost("test/{id}/action")]
+    public ActionResult<object> TestMultipleRoutes(int id)
+    {
+        var httpMethod = HttpContext.Request.Method;
+        var user = _users.FirstOrDefault(u => u.Id == id);
+        
+        if (user == null)
+        {
+            return NotFound($"User with ID {id} not found");
+        }
+
+        return httpMethod switch
+        {
+            "GET" => Ok(new { Method = "GET", User = user, Message = "Retrieved user via GET" }),
+            "POST" => Ok(new { Method = "POST", User = user, Message = "Performed action via POST", ActionTime = DateTime.UtcNow }),
+            _ => BadRequest("Unsupported method")
+        };
+    }
 }

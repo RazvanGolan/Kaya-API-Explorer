@@ -11,6 +11,12 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 - 🔧 **Easy Integration**: Just add a few lines to your startup
 - 📦 **NuGet Package**: Simple installation via NuGet
 - 🎨 **Clean Middleware**: Integrates seamlessly into your ASP.NET Core pipeline
+- 🔐 **Authentication Support**: Multiple authentication methods (Bearer Token, API Key, OAuth 2.0)
+- ⚡ **Try It Out**: Execute API requests directly from the UI with real-time responses
+- 💾 **Export & Download**: Export request/response data and generate code snippets for multiple programming languages
+- 📱 **Request Builder**: Build and test custom HTTP requests with headers, parameters, and body
+- 🔍 **Advanced Search**: Search and filter endpoints by path, method, name, or description
+- 🌙 **Theme Support**: Toggle between light and dark modes for better user experience
 
 ## Quick Start
 
@@ -161,22 +167,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ### Current TODOs
 
-- [x] **Execution Option**: Add "Try It Out" functionality for every endpoint
-- [x] **Multiple Authentication Options**: Support various authentication schemes (Bearer, API Key, OAuth, etc.)
-- [x] **Request/Response Improvements**: Better handling of complex types, classes, and object models
-- [x] **Search Functionality**: Add search by endpoint name functionality in the UI
 - [ ] **Controller Documentation**: Read and display controller XML documentation if available
 
 ### Future Features
 
 - [ ] Support for XML documentation comments
 - [ ] Export to OpenAPI/Swagger format
-- [x] Request/response examples
-- [x] Model schema visualization
-- [x] Dark mode support
-- [x] Performance monitoring integration
-- [ ] Code generation to easily call the endpoint in many programming languages (JavaScript, cURL, Python, Ruby)
-- [ ] Debuggings SignalR
+- [ ] Debugging SignalR
 - [ ] Add GraphQL support
-
-

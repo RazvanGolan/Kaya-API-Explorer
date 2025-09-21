@@ -74,24 +74,27 @@ public class EndpointScanner : IEndpointScanner
 
         foreach (var method in methods)
         {
-            var httpMethods = GetHttpMethods(method);
-            var methodRoute = GetMethodRoute(method);
+            var httpAttributes = GetHttpMethodAttributes(method);
             
-            foreach (var httpMethod in httpMethods)
+            foreach (var httpAttr in httpAttributes)
             {
-                var fullPath = CombineRoutes(controllerRoute, methodRoute);
-                var endpoint = new ApiEndpoint
+                foreach (var httpMethod in httpAttr.HttpMethods)
                 {
-                    Path = fullPath,
-                    HttpMethodType = httpMethod,
-                    MethodName = method.Name,
-                    Description = GetMethodDescription(method),
-                    Parameters = GetMethodParameters(method, fullPath),
-                    RequestBody = GetMethodRequestBody(method),
-                    Response = GetMethodResponse(method),
-                };
+                    var methodRoute = httpAttr.Template ?? string.Empty;
+                    var fullPath = CombineRoutes(controllerRoute, methodRoute);
+                    var endpoint = new ApiEndpoint
+                    {
+                        Path = fullPath,
+                        HttpMethodType = httpMethod,
+                        MethodName = method.Name,
+                        Description = GetMethodDescription(method),
+                        Parameters = GetMethodParameters(method, fullPath),
+                        RequestBody = GetMethodRequestBody(method),
+                        Response = GetMethodResponse(method),
+                    };
 
-                endpoints.Add(endpoint);
+                    endpoints.Add(endpoint);
+                }
             }
         }
 
@@ -495,47 +498,32 @@ public class EndpointScanner : IEndpointScanner
         return new { };
     }
 
-    private static List<string> GetHttpMethods(MethodInfo method)
+    private static List<HttpMethodAttribute> GetHttpMethodAttributes(MethodInfo method)
     {
-        var httpMethods = new List<string>();
+        var httpAttributes = new List<HttpMethodAttribute>();
         
-        var httpAttributes = method.GetCustomAttributes()
-            .Where(attr => attr.GetType().IsSubclassOf(typeof(HttpMethodAttribute)) || 
-                          attr.GetType() == typeof(HttpMethodAttribute));
-
-        foreach (var attr in httpAttributes)
+        var allHttpAttrs = method.GetCustomAttributes()
+            .Where(attr => typeof(HttpMethodAttribute).IsAssignableFrom(attr.GetType()))
+            .Cast<HttpMethodAttribute>();
+            
+        httpAttributes.AddRange(allHttpAttrs);
+        
+        if (httpAttributes.Count == 0)
         {
-            if (attr is HttpMethodAttribute httpMethodAttr)
+            var routeAttr = method.GetCustomAttribute<RouteAttribute>();
+            if (routeAttr != null)
             {
-                httpMethods.AddRange(httpMethodAttr.HttpMethods);
+                httpAttributes.Add(new HttpGetAttribute(routeAttr.Template));
+            }
+            else
+            {
+                httpAttributes.Add(new HttpGetAttribute(method.Name.ToLower()));
             }
         }
-
-        if (httpMethods.Count is 0)
-        {
-            httpMethods.Add("GET");
-        }
-
-        return httpMethods;
+        
+        return httpAttributes;
     }
 
-    private static string GetMethodRoute(MethodInfo method)
-    {
-        var routeAttr = method.GetCustomAttribute<RouteAttribute>();
-        if (routeAttr != null)
-        {
-            return routeAttr.Template;
-        }
-
-        var httpAttr = method.GetCustomAttribute<HttpMethodAttribute>();
-        if (httpAttr?.Template != null)
-        {
-            return httpAttr.Template;
-        }
-
-        return string.Empty;
-    }
-    
     private static string CombineRoutes(string controllerRoute, string methodRoute)
     {
         if (string.IsNullOrEmpty(methodRoute))
