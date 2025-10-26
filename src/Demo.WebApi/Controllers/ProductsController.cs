@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Demo.WebApi.Models;
 
@@ -116,6 +117,7 @@ public class ProductsController : ControllerBase
     /// <param name="request">Product creation data</param>
     /// <returns>Created product</returns>
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public ActionResult<Product> CreateProduct([FromBody] CreateProductRequest request)
     {
         if (string.IsNullOrEmpty(request.Name))
@@ -146,6 +148,7 @@ public class ProductsController : ControllerBase
     /// <param name="quantity">New stock quantity</param>
     /// <returns>Updated product</returns>
     [HttpPatch("{id}/stock")]
+    [Authorize(Roles = "Admin,Manager")]
     public ActionResult<Product> UpdateStock(int id, [FromBody] int quantity)
     {
         var product = _products.FirstOrDefault(p => p.Id == id);

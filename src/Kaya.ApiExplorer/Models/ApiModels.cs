@@ -5,6 +5,8 @@ public class ApiController
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public List<ApiEndpoint> Endpoints { get; set; } = [];
+    public bool RequiresAuthorization { get; set; }
+    public List<string> Roles { get; set; } = [];
 }
 
 public class ApiEndpoint
@@ -16,6 +18,8 @@ public class ApiEndpoint
     public List<ApiParameter> Parameters { get; set; } = [];
     public ApiRequestBody? RequestBody { get; set; }
     public ApiResponse? Response { get; set; }
+    public bool RequiresAuthorization { get; set; }
+    public List<string> Roles { get; set; } = [];
 }
 
 public class ApiParameter

@@ -287,6 +287,21 @@ body {
   border-color: #4338ca;
 }
 
+.badge.auth-badge {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+[data-theme="dark"] .badge.auth-badge {
+  background-color: #78350f;
+  color: #fde68a;
+  border-color: #b45309;
+}
+
 /* Main Content Styles */
 .main-content {
   flex: 1;

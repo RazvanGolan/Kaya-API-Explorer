@@ -772,12 +772,23 @@ function renderEndpoints() {
     const card = document.createElement("div")
     card.className = "endpoint-card"
 
+    const authBadge = endpoint.requiresAuthorization 
+      ? `<span class="badge auth-badge" title="${endpoint.roles.length > 0 ? 'Requires role(s): ' + endpoint.roles.join(', ') : 'Requires authentication'}">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+           </svg>
+           ${endpoint.roles.length > 0 ? endpoint.roles.join(', ') : 'Auth'}
+         </span>`
+      : '';
+
     card.innerHTML = `
             <div class="endpoint-header" onclick="toggleEndpoint('${endpointId}')">
                 <div class="endpoint-title">
                     <div class="endpoint-method-path">
                         <span class="badge ${getMethodColor(endpoint.httpMethodType)}">${endpoint.httpMethodType}</span>
                         <code class="endpoint-path">${endpoint.path}</code>
+                        ${authBadge}
                     </div>
                     <svg class="chevron ${isExpanded ? "expanded" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9,18 15,12 9,6"></polyline>

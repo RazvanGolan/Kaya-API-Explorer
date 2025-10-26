@@ -1,9 +1,17 @@
 using Kaya.ApiExplorer.Extensions;
+using Demo.WebApi.Authentication;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+
+// Add mock authentication that allows all requests and assigns roles
+builder.Services.AddAuthentication("MockAuth")
+    .AddScheme<AuthenticationSchemeOptions, MockAuthenticationHandler>("MockAuth", null);
+
+builder.Services.AddAuthorization();
 
 // Add Kaya API Explorer with default settings
 builder.Services.AddKayaApiExplorer();
@@ -20,6 +28,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

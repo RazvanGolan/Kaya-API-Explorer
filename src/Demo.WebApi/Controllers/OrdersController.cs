@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Demo.WebApi.Models;
 
@@ -5,6 +6,7 @@ namespace Demo.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class OrdersController : ControllerBase
 {
     private static readonly List<Order> _orders = [];
@@ -20,6 +22,7 @@ public class OrdersController : ControllerBase
     /// <param name="pagination">Pagination parameters</param>
     /// <returns>Paginated list of orders with metadata</returns>
     [HttpGet]
+    [AllowAnonymous]
     public ActionResult<ApiResponse<ProductSearchResponse>> GetOrders(
         [FromQuery] OrderStatus? status = null,
         [FromQuery] int? userId = null,
@@ -238,6 +241,7 @@ public class OrdersController : ControllerBase
     /// <param name="groupBy">Group results by day, week, or month</param>
     /// <returns>Analytics report with sales metrics</returns>
     [HttpGet("analytics")]
+    [Authorize(Roles = "Admin")]
     public ActionResult<ApiResponse<AnalyticsReport>> GetAnalytics(
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate,
@@ -295,6 +299,7 @@ public class OrdersController : ControllerBase
     /// <param name="updates">Dictionary of order IDs and their new status</param>
     /// <returns>Results of bulk update operation</returns>
     [HttpPatch("bulk-update")]
+    [Authorize(Roles = "Admin,Manager")]
     public ActionResult<ApiResponse<Dictionary<int, string>>> BulkUpdateOrders(
         [FromBody] Dictionary<int, OrderStatus> updates)
     {

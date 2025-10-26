@@ -1,4 +1,5 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Kaya.ApiExplorer.Models;
@@ -49,11 +50,19 @@ public class EndpointScanner : IEndpointScanner
 
         foreach (var group in controllerGroups)
         {
+            var controllerType = assemblies
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.Name == group.Key);
+            
+            var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+            
             var controller = new ApiController
             {
                 Name = group.Key,
                 Description = GetControllerDescription(group.Key),
-                Endpoints = group.Value
+                Endpoints = group.Value,
+                RequiresAuthorization = requiresAuth,
+                Roles = roles
             };
             documentation.Controllers.Add(controller);
         }
@@ -83,6 +92,9 @@ public class EndpointScanner : IEndpointScanner
                 {
                     var methodRoute = httpAttr.Template ?? string.Empty;
                     var fullPath = ReflectionHelper.CombineRoutes(controllerRoute, methodRoute);
+                    
+                    var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+                    
                     var endpoint = new ApiEndpoint
                     {
                         Path = fullPath,
@@ -92,6 +104,8 @@ public class EndpointScanner : IEndpointScanner
                         Parameters = GetMethodParameters(method, fullPath),
                         RequestBody = GetMethodRequestBody(method),
                         Response = GetMethodResponse(method),
+                        RequiresAuthorization = requiresAuth,
+                        Roles = roles
                     };
 
                     endpoints.Add(endpoint);
