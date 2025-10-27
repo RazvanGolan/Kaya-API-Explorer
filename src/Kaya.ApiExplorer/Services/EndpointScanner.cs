@@ -54,7 +54,8 @@ public class EndpointScanner : IEndpointScanner
                 .SelectMany(a => a.GetTypes())
                 .FirstOrDefault(t => t.Name == group.Key);
             
-            var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+            var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
+            var (isObsolete, obsoleteMessage) = AttributeHelper.GetObsoleteInfo(controllerType);
             
             var controller = new ApiController
             {
@@ -62,7 +63,9 @@ public class EndpointScanner : IEndpointScanner
                 Description = GetControllerDescription(group.Key),
                 Endpoints = group.Value,
                 RequiresAuthorization = requiresAuth,
-                Roles = roles
+                Roles = roles,
+                IsObsolete = isObsolete,
+                ObsoleteMessage = obsoleteMessage
             };
             documentation.Controllers.Add(controller);
         }
@@ -93,7 +96,8 @@ public class EndpointScanner : IEndpointScanner
                     var methodRoute = httpAttr.Template ?? string.Empty;
                     var fullPath = ReflectionHelper.CombineRoutes(controllerRoute, methodRoute);
                     
-                    var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+                    var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
+                    var (isObsolete, obsoleteMessage) = AttributeHelper.GetObsoleteInfo(method);
                     
                     var endpoint = new ApiEndpoint
                     {
@@ -105,7 +109,9 @@ public class EndpointScanner : IEndpointScanner
                         RequestBody = GetMethodRequestBody(method),
                         Response = GetMethodResponse(method),
                         RequiresAuthorization = requiresAuth,
-                        Roles = roles
+                        Roles = roles,
+                        IsObsolete = isObsolete,
+                        ObsoleteMessage = obsoleteMessage
                     };
 
                     endpoints.Add(endpoint);

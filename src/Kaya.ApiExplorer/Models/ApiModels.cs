@@ -7,6 +7,8 @@ public class ApiController
     public List<ApiEndpoint> Endpoints { get; set; } = [];
     public bool RequiresAuthorization { get; set; }
     public List<string> Roles { get; set; } = [];
+    public bool IsObsolete { get; set; }
+    public string? ObsoleteMessage { get; set; }
 }
 
 public class ApiEndpoint
@@ -20,6 +22,8 @@ public class ApiEndpoint
     public ApiResponse? Response { get; set; }
     public bool RequiresAuthorization { get; set; }
     public List<string> Roles { get; set; } = [];
+    public bool IsObsolete { get; set; }
+    public string? ObsoleteMessage { get; set; }
 }
 
 public class ApiParameter

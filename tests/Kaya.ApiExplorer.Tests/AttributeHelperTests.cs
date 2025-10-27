@@ -4,7 +4,7 @@ using Kaya.ApiExplorer.Helpers;
 
 namespace Kaya.ApiExplorer.Tests;
 
-public class AuthorizationHelperTests
+public class AttributeHelperTests
 {
     #region Test Controllers
 
@@ -69,7 +69,7 @@ public class AuthorizationHelperTests
     public void GetAuthorizationInfo_WithNullMember_ReturnsNoAuth()
     {
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(null);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(null);
 
         // Assert
         Assert.False(requiresAuth);
@@ -83,7 +83,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(NoAuthController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.False(requiresAuth);
@@ -97,7 +97,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(AuthorizedController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -111,7 +111,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(AdminController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -126,7 +126,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MultiRoleController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -142,7 +142,7 @@ public class AuthorizationHelperTests
         var method = typeof(NoAuthController).GetMethod(nameof(NoAuthController.GetPublic))!;
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method);
 
         // Assert
         Assert.False(requiresAuth);
@@ -157,7 +157,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MixedAuthController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -172,7 +172,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MixedAuthController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
 
         // Assert
         Assert.False(requiresAuth); // [AllowAnonymous] overrides controller [Authorize]
@@ -187,7 +187,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MixedAuthController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -203,7 +203,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MixedAuthController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -219,7 +219,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(AdminWithAnonymousController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, controllerType);
 
         // Assert
         Assert.False(requiresAuth); // [AllowAnonymous] overrides [Authorize(Roles = "Admin")]
@@ -234,7 +234,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(MultiRoleController); // Has "Admin,Manager"
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -252,7 +252,7 @@ public class AuthorizationHelperTests
         var controllerType = typeof(AdminController);
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
@@ -267,7 +267,7 @@ public class AuthorizationHelperTests
         // Note: NOT passing the controller type as fallback
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(method, null);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, null);
 
         // Assert
         Assert.False(requiresAuth); // Method itself has no [Authorize], and no fallback provided
@@ -281,10 +281,142 @@ public class AuthorizationHelperTests
         var controllerType = typeof(AuthorizedController); // Has [Authorize] with no Roles
 
         // Act
-        var (requiresAuth, roles) = AuthorizationHelper.GetAuthorizationInfo(controllerType);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(controllerType);
 
         // Assert
         Assert.True(requiresAuth);
         Assert.Empty(roles); // Roles should be empty, not null
     }
+
+    #region Obsolete Tests
+
+#pragma warning disable CS0618 // Type or member is obsolete
+
+    // Controllers for testing obsolete functionality
+    public class NonObsoleteController : ControllerBase
+    {
+        public IActionResult GetNormal() => Ok();
+    }
+
+    [Obsolete]
+    public class ObsoleteControllerNoMessage : ControllerBase
+    {
+        public IActionResult GetObsolete() => Ok();
+    }
+
+    [Obsolete("This controller is deprecated")]
+    public class ObsoleteControllerWithMessage : ControllerBase
+    {
+        public IActionResult GetObsolete() => Ok();
+    }
+
+    public class ControllerWithObsoleteMethods : ControllerBase
+    {
+        public IActionResult GetNormal() => Ok();
+
+        [Obsolete]
+        public IActionResult GetObsoleteNoMessage() => Ok();
+
+        [Obsolete("Use GetV2 instead")]
+        public IActionResult GetObsoleteWithMessage() => Ok();
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithNullMember_ReturnsFalse()
+    {
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(null);
+
+        // Assert
+        Assert.False(isObsolete);
+        Assert.Null(message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithNonObsoleteController_ReturnsFalse()
+    {
+        // Arrange
+        var controllerType = typeof(NonObsoleteController);
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(controllerType);
+
+        // Assert
+        Assert.False(isObsolete);
+        Assert.Null(message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithObsoleteControllerNoMessage_ReturnsTrueWithNullMessage()
+    {
+        // Arrange
+        var controllerType = typeof(ObsoleteControllerNoMessage);
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(controllerType);
+
+        // Assert
+        Assert.True(isObsolete);
+        Assert.Null(message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithObsoleteControllerWithMessage_ReturnsTrueWithMessage()
+    {
+        // Arrange
+        var controllerType = typeof(ObsoleteControllerWithMessage);
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(controllerType);
+
+        // Assert
+        Assert.True(isObsolete);
+        Assert.Equal("This controller is deprecated", message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithNonObsoleteMethod_ReturnsFalse()
+    {
+        // Arrange
+        var method = typeof(ControllerWithObsoleteMethods).GetMethod(nameof(ControllerWithObsoleteMethods.GetNormal))!;
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(method);
+
+        // Assert
+        Assert.False(isObsolete);
+        Assert.Null(message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithObsoleteMethodNoMessage_ReturnsTrueWithNullMessage()
+    {
+        // Arrange
+        var method = typeof(ControllerWithObsoleteMethods).GetMethod(nameof(ControllerWithObsoleteMethods.GetObsoleteNoMessage))!;
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(method);
+
+        // Assert
+        Assert.True(isObsolete);
+        Assert.Null(message);
+    }
+
+    [Fact]
+    public void GetObsoleteInfo_WithObsoleteMethodWithMessage_ReturnsTrueWithMessage()
+    {
+        // Arrange
+        var method = typeof(ControllerWithObsoleteMethods).GetMethod(nameof(ControllerWithObsoleteMethods.GetObsoleteWithMessage))!;
+
+        // Act
+        var (isObsolete, message) = AttributeHelper.GetObsoleteInfo(method);
+
+        // Assert
+        Assert.True(isObsolete);
+        Assert.Equal("Use GetV2 instead", message);
+    }
+
+#pragma warning restore CS0618 // Type or member is obsolete
+
+    #endregion
 }

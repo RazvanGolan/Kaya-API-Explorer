@@ -139,6 +139,7 @@ public class UsersController : ControllerBase
     /// <param name="request">User update data</param>
     /// <returns>Updated user</returns>
     [HttpPut("{id}")]
+    [Obsolete("Use PATCH endpoint instead for partial updates")]
     public ActionResult<User> UpdateUser(int id, [FromBody] UpdateUserRequest request)
     {
         var user = _users.FirstOrDefault(u => u.Id == id);
@@ -221,6 +222,7 @@ public class UsersController : ControllerBase
     /// <returns>Different responses based on HTTP method</returns>
     [HttpGet("test/{id}")]
     [HttpPost("test/{id}/action")]
+    [Obsolete]
     public ActionResult<object> TestMultipleRoutes(int id)
     {
         var httpMethod = HttpContext.Request.Method;

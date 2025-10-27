@@ -300,6 +300,7 @@ public class OrdersController : ControllerBase
     /// <returns>Results of bulk update operation</returns>
     [HttpPatch("bulk-update")]
     [Authorize(Roles = "Admin,Manager")]
+    [Obsolete("This endpoint will be removed in v2.0. Use the new batch processing API instead.")]
     public ActionResult<ApiResponse<Dictionary<int, string>>> BulkUpdateOrders(
         [FromBody] Dictionary<int, OrderStatus> updates)
     {

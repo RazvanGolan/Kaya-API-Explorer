@@ -302,6 +302,21 @@ body {
   border-color: #b45309;
 }
 
+.badge.obsolete-badge {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+[data-theme="dark"] .badge.obsolete-badge {
+  background-color: #7f1d1d;
+  color: #fecaca;
+  border-color: #991b1b;
+}
+
 /* Main Content Styles */
 .main-content {
   flex: 1;

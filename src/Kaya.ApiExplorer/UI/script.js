@@ -782,6 +782,17 @@ function renderEndpoints() {
          </span>`
       : '';
 
+    const obsoleteBadge = endpoint.isObsolete
+      ? `<span class="badge obsolete-badge" title="${endpoint.obsoleteMessage ? 'Obsolete: ' + endpoint.obsoleteMessage : 'This endpoint is deprecated'}">
+           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+             <circle cx="12" cy="12" r="10"></circle>
+             <line x1="12" y1="8" x2="12" y2="12"></line>
+             <line x1="12" y1="16" x2="12.01" y2="16"></line>
+           </svg>
+           Obsolete
+         </span>`
+      : '';
+
     card.innerHTML = `
             <div class="endpoint-header" onclick="toggleEndpoint('${endpointId}')">
                 <div class="endpoint-title">
@@ -789,6 +800,7 @@ function renderEndpoints() {
                         <span class="badge ${getMethodColor(endpoint.httpMethodType)}">${endpoint.httpMethodType}</span>
                         <code class="endpoint-path">${endpoint.path}</code>
                         ${authBadge}
+                        ${obsoleteBadge}
                     </div>
                     <svg class="chevron ${isExpanded ? "expanded" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9,18 15,12 9,6"></polyline>
