@@ -17,6 +17,7 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 - 📱 **Request Builder**: Build and test custom HTTP requests with headers, parameters, and body
 - 🔍 **Advanced Search**: Search and filter endpoints by path, method, name, or description
 - 🌙 **Theme Support**: Toggle between light and dark modes for better user experience
+- 🔌 **SignalR Debug Tool**: Interactive real-time hub testing and debugging (optional feature)
 
 ## Quick Start
 
@@ -105,6 +106,38 @@ builder.Services.AddKayaApiExplorer();
 builder.Services.AddKayaApiExplorer(routePrefix: "/api-docs", defaultTheme: "dark");
 ```
 
+### Advanced Configuration with SignalR Debugging
+
+```csharp
+using Kaya.ApiExplorer.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSignalR(); // If using SignalR
+
+builder.Services.AddKayaApiExplorer(options =>
+{
+    options.Middleware.RoutePrefix = "/api-explorer";
+    options.Middleware.DefaultTheme = "light";
+    
+    // Enable SignalR debugging (optional)
+    options.SignalRDebug.Enabled = true;
+    options.SignalRDebug.RoutePrefix = "/signalr-debug";
+});
+
+var app = builder.Build();
+
+var options = app.Services.GetRequiredService<Kaya.ApiExplorer.Configuration.KayaApiExplorerOptions>();
+app.UseKayaApiExplorer(options);
+
+// Map your SignalR hubs
+app.MapHub<NotificationHub>("/notification");
+
+app.Run();
+```
+
+For detailed SignalR debugging documentation, see [SIGNALR_DEBUG_README.md](SIGNALR_DEBUG_README.md).
+
 ### Configuration via appsettings.json
 
 You can also configure Kaya API Explorer through your `appsettings.json` file:
@@ -173,5 +206,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [ ] Support for XML documentation comments
 - [ ] Export to OpenAPI/Swagger format
-- [ ] Debugging SignalR
+- [x] **SignalR Debugging Tool** - ✅ Completed!
 - [ ] Add GraphQL support
