@@ -37,7 +37,7 @@ public class ApiExplorerMiddleware
         await _next(context);
     }
 
-    private async Task ServeUI(HttpContext context)
+    private static async Task ServeUI(HttpContext context)
     {
         try
         {
@@ -53,7 +53,7 @@ public class ApiExplorerMiddleware
         }
     }
 
-    private async Task ServeApiDocs(HttpContext context)
+    private static async Task ServeApiDocs(HttpContext context)
     {
         var scanner = context.RequestServices.GetRequiredService<IEndpointScanner>();
         var documentation = scanner.ScanEndpoints(context.RequestServices);

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignalR Debug - Kaya</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="stylesheet" href="signalr-debug.css">
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 2v4M12 18v4M22 12h-4M6 12H2"></path>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>SignalR Debug</h1>
+                        <p>Real-time Hub Testing</p>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search hubs..." class="search-input">
+                    <button type="button" id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div id="hubsList" class="hubs-list">
+                    <!-- Hubs will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="main-header">
+                <div class="header-left">
+                    <h2 id="pageTitle">SignalR Hubs</h2>
+                    <p id="pageSubtitle">Connect to hubs and test real-time methods</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-outline" id="apiExplorerBtn" onclick="window.location.href = (window.KayaSignalRDebugConfig?.apiExplorerRoute || '/api-explorer')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16,18 22,12 16,6"></polyline>
+                            <polyline points="8,6 2,12 8,18"></polyline>
+                        </svg>
+                        API Explorer
+                    </button>
+                    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                        <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div id="welcomeScreen" class="welcome-screen">
+                    <div class="welcome-content">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 2v4M12 18v4M22 12h-4M6 12H2"></path>
+                        </svg>
+                        <h2>Welcome to SignalR Debug</h2>
+                        <p>Select a hub from the sidebar to begin testing</p>
+                    </div>
+                </div>
+
+                <div id="hubDetailView" class="hub-detail-view" style="display: none;">
+                    <!-- Hub details will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Modal -->
+    <div id="connectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Connect to Hub</h3>
+                <button class="modal-close" onclick="closeConnectionModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="hubUrl">Hub URL</label>
+                    <input type="text" id="hubUrl" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="accessToken">Access Token (Optional)</label>
+                    <textarea id="accessToken" class="form-control" rows="3" placeholder="Enter JWT token for authenticated hubs..."></textarea>
+                    <small class="form-text">Required for hubs with [Authorize] attribute</small>
+                </div>
+                <div id="authWarning" class="warning-message" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span>This hub requires authorization</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConnectionModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="connectToHub()">Connect</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Method Invocation Modal -->
+    <div id="methodModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="methodModalTitle">Invoke Method</h3>
+                <button class="modal-close" onclick="closeMethodModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="methodParameters">
+                    <!-- Parameters will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMethodModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="invokeMethod()">Invoke</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="signalr-debug.js"></script>
+</body>
+</html>

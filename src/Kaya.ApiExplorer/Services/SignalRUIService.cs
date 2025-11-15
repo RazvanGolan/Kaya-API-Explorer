@@ -1,0 +1,74 @@
+using System.Reflection;
+using System.Text;
+using Kaya.ApiExplorer.Configuration;
+
+namespace Kaya.ApiExplorer.Services;
+
+public interface ISignalRUIService
+{
+    Task<string> GetUIAsync();
+}
+
+public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIService
+{
+    public async Task<string> GetUIAsync()
+    {
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            
+            // Read embedded resources for SignalR UI
+            var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.html");
+            var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.css");
+            var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.js");
+            
+            // Get the icon from main UI
+            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.icon.svg");
+            var svgBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(favIconContent));
+
+            // Inject theme configuration into the HTML
+            var themeScript = GenerateThemeScript();
+
+            var finalHtml = htmlContent
+                .Replace("<link rel=\"stylesheet\" href=\"signalr-debug.css\">", $"<style>{cssContent}</style>")
+                .Replace("<script src=\"signalr-debug.js\"></script>", $"{themeScript}<script>{jsContent}</script>")
+                .Replace("<link rel=\"icon\" type=\"image/svg+xml\" href=\"icon.svg\">", $"<link rel=\"icon\" type=\"image/svg+xml\" href=\"data:image/svg+xml;base64,{svgBase64}\">");
+
+            return finalHtml;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to load SignalR Debug UI: {ex.Message}", ex);
+        }
+    }
+
+    private string GenerateThemeScript()
+    {
+        var defaultTheme = options.Middleware.DefaultTheme?.ToLower() ?? "light";
+        
+        if (defaultTheme != "light" && defaultTheme != "dark")
+        {
+            defaultTheme = "light";
+        }
+
+        var apiExplorerRoute = options.Middleware.RoutePrefix ?? "/api-explorer";
+
+        return $@"
+<script>
+    // Kaya SignalR Debug Configuration
+    window.KayaSignalRDebugConfig = {{
+        defaultTheme: '{defaultTheme}',
+        apiExplorerRoute: '{apiExplorerRoute}'
+    }};
+</script>";
+    }
+
+    private static async Task<string> ReadEmbeddedResourceAsync(Assembly assembly, string resourceName)
+    {
+        var fullResourceName = $"Kaya.ApiExplorer.{resourceName}";
+        using var stream = assembly.GetManifestResourceStream(fullResourceName) 
+            ?? throw new InvalidOperationException($"Embedded resource '{fullResourceName}' not found.");
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
+    }
+}

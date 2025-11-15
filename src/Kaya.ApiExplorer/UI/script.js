@@ -1831,6 +1831,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   renderHeaders()
 
+  // Show SignalR Debug button if enabled
+  const config = window.KayaApiExplorerConfig || {};
+  if (config.signalREnabled) {
+    const signalRBtn = document.getElementById("signalRDebugBtn");
+    if (signalRBtn) {
+      signalRBtn.style.display = "flex";
+      signalRBtn.addEventListener("click", () => {
+        window.location.href = config.signalRRoute || '/signalr-debug';
+      });
+    }
+  }
+
   document.getElementById("searchInput").addEventListener("input", filterControllers)
   
   // Also add event listener to show/hide clear button on input

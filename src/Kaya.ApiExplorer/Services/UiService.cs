@@ -50,11 +50,16 @@ public class UIService(KayaApiExplorerOptions options) : IUIService
             defaultTheme = "light";
         }
 
+        var signalRRoute = options.SignalRDebug.RoutePrefix ?? "/signalr-debug";
+        var signalREnabled = options.SignalRDebug.Enabled;
+
         return $@"
 <script>
     // Kaya API Explorer Configuration
     window.KayaApiExplorerConfig = {{
-        defaultTheme: '{defaultTheme}'
+        defaultTheme: '{defaultTheme}',
+        signalRRoute: '{signalRRoute}',
+        signalREnabled: {signalREnabled.ToString().ToLower()}
     }};
 </script>";
     }
