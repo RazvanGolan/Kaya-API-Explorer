@@ -61,7 +61,50 @@ function setupEventListeners() {
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', clearSearch);
     }
+
+    // Authorization modal
+    const authorizeBtn = document.getElementById('authorizeBtn');
+    if (authorizeBtn) {
+        authorizeBtn.addEventListener('click', () => showModal('authModal'));
+    }
+
+    const closeAuth = document.getElementById('closeAuth');
+    if (closeAuth) {
+        closeAuth.addEventListener('click', () => hideModal('authModal'));
+    }
+
+    const saveAuthBtn = document.getElementById('saveAuthBtn');
+    if (saveAuthBtn) {
+        saveAuthBtn.addEventListener('click', () => saveAuthConfiguration());
+    }
+
+    const clearAuthBtn = document.getElementById('clearAuthBtn');
+    if (clearAuthBtn) {
+        clearAuthBtn.addEventListener('click', () => clearAuthConfiguration());
+    }
+
+    // Modal backdrop clicks
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal(modal.id);
+            }
+        });
+    });
+
+    // Load saved auth configuration
+    loadAuthConfiguration();
 }
+
+// Modal management
+function showModal(modalId) {
+    document.getElementById(modalId).classList.add('show');
+}
+
+function hideModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+
 
 // Load hubs from API
 async function loadHubs() {
@@ -310,21 +353,36 @@ function showConnectionModal() {
 
 function closeConnectionModal() {
     document.getElementById('connectionModal').style.display = 'none';
-    document.getElementById('accessToken').value = '';
 }
 
 // Connect to hub
 async function connectToHub() {
     const hubUrl = document.getElementById('hubUrl').value;
-    const accessToken = document.getElementById('accessToken').value.trim();
+    const accessToken = getAccessToken();
+    
     console.log('Connecting to hub at:', hubUrl);
     try {
         addLog('info', `Connecting to ${currentHub.name}...`);
         
+        const connectionOptions = {};
+        
+        // Add access token if available
+        if (accessToken) {
+            connectionOptions.accessTokenFactory = () => accessToken;
+        }
+        
+        // Add custom headers (for API key auth)
+        const customHeaders = {};
+        if (authConfig.type === 'apikey' && authConfig.apikey.value) {
+            customHeaders[authConfig.apikey.name] = authConfig.apikey.value;
+        }
+        
+        if (Object.keys(customHeaders).length > 0) {
+            connectionOptions.headers = customHeaders;
+        }
+        
         const connectionBuilder = new signalR.HubConnectionBuilder()
-            .withUrl(hubUrl, accessToken ? {
-                accessTokenFactory: () => accessToken
-            } : {})
+            .withUrl(hubUrl, connectionOptions)
             .withAutomaticReconnect()
             .configureLogging(signalR.LogLevel.Information);
         
