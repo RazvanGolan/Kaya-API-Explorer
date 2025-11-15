@@ -14,15 +14,34 @@ document.addEventListener('DOMContentLoaded', () => {
 // Theme Management
 function initializeTheme() {
     const config = window.KayaSignalRDebugConfig || { defaultTheme: 'light' };
-    const savedTheme = localStorage.getItem('kayaSignalRTheme') || config.defaultTheme;
+    const savedTheme = localStorage.getItem('theme') || config.defaultTheme;
     document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcons();
 }
 
 function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('kayaSignalRTheme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcons();
+}
+
+function updateThemeIcons() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const sunIcon = document.querySelector('.sun-icon');
+    const moonIcon = document.querySelector('.moon-icon');
+    const themeText = document.querySelector('.theme-text');
+    
+    if (currentTheme === 'dark') {
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'block';
+        if (themeText) themeText.textContent = 'Light';
+    } else {
+        if (sunIcon) sunIcon.style.display = 'block';
+        if (moonIcon) moonIcon.style.display = 'none';
+        if (themeText) themeText.textContent = 'Dark';
+    }
 }
 
 // Event Listeners Setup
@@ -93,16 +112,14 @@ function renderHubsList(hubs) {
     hubsList.innerHTML = hubs.map(hub => `
         <div class="hub-item" onclick="selectHub('${escapeHtml(hub.name)}')">
             <div class="hub-item-header">
-                <span class="hub-name">${escapeHtml(hub.name)}</span>
+                <span class="hub-name">
+                    ${escapeHtml(hub.name)}
+                    ${hub.requiresAuthorization ? '<span class="badge auth-badge" style="margin-left: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Auth</span>' : ''}
+                    ${hub.isObsolete ? '<span class="badge obsolete-badge" style="margin-left: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>Obsolete</span>' : ''}
+                </span>
                 <span class="hub-status ${isHubConnected(hub.name) ? 'connected' : 'disconnected'}"></span>
             </div>
             <div class="hub-path">${escapeHtml(hub.path)}</div>
-            ${hub.requiresAuthorization || hub.isObsolete ? `
-                <div class="hub-badges">
-                    ${hub.requiresAuthorization ? '<span class="badge badge-auth">🔒 Auth</span>' : ''}
-                    ${hub.isObsolete ? '<span class="badge badge-obsolete">⚠️ Obsolete</span>' : ''}
-                </div>
-            ` : ''}
         </div>
     `).join('');
 }
@@ -221,11 +238,11 @@ function renderMethodCard(method, isConnected) {
     return `
         <div class="method-card">
             <div class="method-header">
-                <span class="method-name">${escapeHtml(method.name)}</span>
-                <div class="method-badges">
-                    ${method.requiresAuthorization ? '<span class="badge badge-auth">🔒</span>' : ''}
-                    ${method.isObsolete ? '<span class="badge badge-obsolete">⚠️</span>' : ''}
-                </div>
+                <span class="method-name">
+                    ${escapeHtml(method.name)}
+                    ${method.requiresAuthorization ? '<span class="badge auth-badge" style="margin-left: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Auth</span>' : ''}
+                    ${method.isObsolete ? '<span class="badge obsolete-badge" style="margin-left: 8px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>Obsolete</span>' : ''}
+                </span>
             </div>
             <div class="method-description">${escapeHtml(method.description)}</div>
             
@@ -300,7 +317,7 @@ function closeConnectionModal() {
 async function connectToHub() {
     const hubUrl = document.getElementById('hubUrl').value;
     const accessToken = document.getElementById('accessToken').value.trim();
-    
+    console.log('Connecting to hub at:', hubUrl);
     try {
         addLog('info', `Connecting to ${currentHub.name}...`);
         
@@ -314,11 +331,11 @@ async function connectToHub() {
         const connection = connectionBuilder.build();
         
         // Setup event handlers
-        connection.onreconnecting(error => {
+        connection.onreconnecting(_ => {
             addLog('warning', `Connection lost. Reconnecting...`);
         });
         
-        connection.onreconnected(connectionId => {
+        connection.onreconnected(_ => {
             addLog('success', `Reconnected successfully`);
         });
         
@@ -330,6 +347,18 @@ async function connectToHub() {
         });
         
         await connection.start();
+        
+        // Register handlers for all possible server messages AFTER connection starts
+        connection.on('StockUpdate', (data) => {
+            addLog('incoming', `📨 StockUpdate received`, data);
+        });
+        connection.on('Subscribed', (data) => {
+            addLog('success', `✓ Subscribed to ${data}`);
+        });
+        connection.on('Unsubscribed', (data) => {
+            addLog('info', `Unsubscribed from ${data}`);
+        });
+        
         connections.set(currentHub.name, connection);
         
         addLog('success', `Connected to ${currentHub.name} successfully`);
@@ -378,13 +407,13 @@ function openMethodModal(method) {
                 </label>
                 <textarea 
                     id="param_${index}" 
-                    class="form-control" 
+                    class="body-textarea" 
                     rows="3"
                     placeholder='${param.example ? escapeHtml(param.example) : 'Enter value as JSON'}'
                     data-param-name="${escapeHtml(param.name)}"
                     ${param.required ? 'required' : ''}
                 >${param.example || ''}</textarea>
-                <small class="form-text">Enter value as JSON</small>
+                <small class="help-text">Enter value as JSON</small>
             </div>
         `).join('');
     }
@@ -472,9 +501,10 @@ function clearSearch() {
 }
 
 // Logging
-function addLog(type, message) {
+function addLog(type, message, data = null) {
     const timestamp = new Date().toLocaleTimeString();
-    logs.push({ type, message, timestamp });
+    const fullMessage = data ? `${message}\n${JSON.stringify(data, null, 2)}` : message;
+    logs.push({ type, message: fullMessage, timestamp });
     
     // Keep only last 100 logs
     if (logs.length > 100) {

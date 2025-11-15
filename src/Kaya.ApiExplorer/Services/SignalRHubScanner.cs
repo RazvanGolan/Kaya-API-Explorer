@@ -1,6 +1,5 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
 using Kaya.ApiExplorer.Models;
 using Kaya.ApiExplorer.Helpers;
 
@@ -35,7 +34,7 @@ public class SignalRHubScanner : ISignalRHubScanner
                 foreach (var hubType in hubTypes)
                 {
                     var hub = ScanHub(hubType);
-                    if (hub != null)
+                    if (hub is not null)
                     {
                         documentation.Hubs.Add(hub);
                     }
@@ -54,14 +53,16 @@ public class SignalRHubScanner : ISignalRHubScanner
     private static bool IsHubType(Type type)
     {
         var currentType = type.BaseType;
-        while (currentType != null)
+        while (currentType is not null)
         {
             if (currentType.IsGenericType && 
-                currentType.GetGenericTypeDefinition().Name == "Hub`1")
+                currentType.GetGenericTypeDefinition().Name is "Hub`1" &&
+                currentType.Namespace is "Microsoft.AspNetCore.SignalR")
             {
                 return true;
             }
-            if (currentType.Name == "Hub")
+            if (currentType.Name is "Hub" && 
+                currentType.Namespace is "Microsoft.AspNetCore.SignalR")
             {
                 return true;
             }
@@ -107,7 +108,7 @@ public class SignalRHubScanner : ISignalRHubScanner
         foreach (var method in methods)
         {
             var hubMethod = ScanHubMethod(method, hubType);
-            if (hubMethod != null)
+            if (hubMethod is not null)
             {
                 hub.Methods.Add(hubMethod);
             }
@@ -162,7 +163,7 @@ public class SignalRHubScanner : ISignalRHubScanner
                     genericTypeDefinition == typeof(ValueTask<>))
                 {
                     var actualReturnType = returnType.GetGenericArguments().FirstOrDefault();
-                    if (actualReturnType != null)
+                    if (actualReturnType is not null)
                     {
                         returnTypeName = ReflectionHelper.GetFriendlyTypeName(actualReturnType);
                         var schemas = new Dictionary<string, ApiSchema>();
@@ -188,7 +189,7 @@ public class SignalRHubScanner : ISignalRHubScanner
             ReturnTypeExample = returnExample,
             RequiresAuthorization = requiresAuth,
             Roles = roles,
-            Policies = policies.Distinct().ToList(),
+            Policies = [.. policies.Distinct()],
             IsObsolete = isObsolete,
             ObsoleteMessage = obsoleteMessage
         };
@@ -196,7 +197,7 @@ public class SignalRHubScanner : ISignalRHubScanner
         foreach (var param in method.GetParameters())
         {
             var parameter = ScanParameter(param);
-            if (parameter != null)
+            if (parameter is not null)
             {
                 hubMethod.Parameters.Add(parameter);
             }
@@ -219,7 +220,7 @@ public class SignalRHubScanner : ISignalRHubScanner
             Name = param.Name ?? "unknown",
             Type = typeName,
             Required = !param.HasDefaultValue && 
-                      (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) == null),
+                      (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null),
             DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
             Example = example
         };
@@ -245,9 +246,9 @@ public class SignalRHubScanner : ISignalRHubScanner
         return $"/{char.ToLowerInvariant(hubName[0])}{hubName[1..]}";
     }
 
+    // TODO: Enhance to read XML documentation comments
     private static string GetHubDescription(Type hubType)
     {
-        // This could be enhanced to read XML documentation comments
         var hubName = hubType.Name;
         if (hubName.EndsWith("Hub"))
         {
@@ -257,9 +258,9 @@ public class SignalRHubScanner : ISignalRHubScanner
         return $"{hubName} SignalR hub for real-time communication";
     }
 
+    // TODO: Enhance to read XML documentation comments
     private static string GetMethodDescription(MethodInfo method)
     {
-        // This could be enhanced to read XML documentation comments
         return $"Invoke {method.Name} method on hub";
     }
 }

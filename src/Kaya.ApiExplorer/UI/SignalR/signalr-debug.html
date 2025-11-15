@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SignalR Debug - Kaya</title>
     <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="stylesheet" href="../styles.css">
     <link rel="stylesheet" href="signalr-debug.css">
     <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
 </head>
@@ -42,7 +43,7 @@
             </div>
             
             <div class="sidebar-content">
-                <div id="hubsList" class="hubs-list">
+                <div id="hubsList" class="controllers-list">
                     <!-- Hubs will be populated by JavaScript -->
                 </div>
             </div>
@@ -51,11 +52,11 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="main-header">
-                <div class="header-left">
+                <div class="header-info">
                     <h2 id="pageTitle">SignalR Hubs</h2>
                     <p id="pageSubtitle">Connect to hubs and test real-time methods</p>
                 </div>
-                <div class="header-right">
+                <div class="header-actions">
                     <button class="btn btn-outline" id="apiExplorerBtn" onclick="window.location.href = (window.KayaSignalRDebugConfig?.apiExplorerRoute || '/api-explorer')">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="16,18 22,12 16,6"></polyline>
@@ -63,7 +64,7 @@
                         </svg>
                         API Explorer
                     </button>
-                    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                    <button class="btn btn-outline theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
                         <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="5"></circle>
                             <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -78,6 +79,7 @@
                         <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                         </svg>
+                        <span class="theme-text">Dark</span>
                     </button>
                 </div>
             </div>
@@ -117,12 +119,12 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="hubUrl">Hub URL</label>
-                    <input type="text" id="hubUrl" class="form-control" readonly>
+                    <input type="text" id="hubUrl" class="url-input" readonly>
                 </div>
                 <div class="form-group">
                     <label for="accessToken">Access Token (Optional)</label>
-                    <textarea id="accessToken" class="form-control" rows="3" placeholder="Enter JWT token for authenticated hubs..."></textarea>
-                    <small class="form-text">Required for hubs with [Authorize] attribute</small>
+                    <textarea id="accessToken" class="auth-textarea" rows="3" placeholder="Enter JWT token for authenticated hubs..."></textarea>
+                    <small class="help-text">Required for hubs with [Authorize] attribute</small>
                 </div>
                 <div id="authWarning" class="warning-message" style="display: none;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -132,10 +134,10 @@
                     </svg>
                     <span>This hub requires authorization</span>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeConnectionModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="connectToHub()">Connect</button>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeConnectionModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="connectToHub()">Connect</button>
+                </div>
             </div>
         </div>
     </div>
@@ -156,10 +158,10 @@
                 <div id="methodParameters">
                     <!-- Parameters will be populated dynamically -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeMethodModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="invokeMethod()">Invoke</button>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeMethodModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="invokeMethod()">Invoke</button>
+                </div>
             </div>
         </div>
     </div>

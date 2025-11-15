@@ -19,7 +19,8 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
             
             // Read embedded resources for SignalR UI
             var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.html");
-            var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.css");
+            var mainCssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
+            var signalRCssContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.css");
             var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.js");
             
             // Get the icon from main UI
@@ -30,7 +31,8 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
             var themeScript = GenerateThemeScript();
 
             var finalHtml = htmlContent
-                .Replace("<link rel=\"stylesheet\" href=\"signalr-debug.css\">", $"<style>{cssContent}</style>")
+                .Replace("<link rel=\"stylesheet\" href=\"../styles.css\">", $"<style>{mainCssContent}</style>")
+                .Replace("<link rel=\"stylesheet\" href=\"signalr-debug.css\">", $"<style>{signalRCssContent}</style>")
                 .Replace("<script src=\"signalr-debug.js\"></script>", $"{themeScript}<script>{jsContent}</script>")
                 .Replace("<link rel=\"icon\" type=\"image/svg+xml\" href=\"icon.svg\">", $"<link rel=\"icon\" type=\"image/svg+xml\" href=\"data:image/svg+xml;base64,{svgBase64}\">");
 
