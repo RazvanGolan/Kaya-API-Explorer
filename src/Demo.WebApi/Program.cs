@@ -11,6 +11,22 @@ builder.Services.AddControllers();
 // Add SignalR
 builder.Services.AddSignalR();
 
+// Add SignalR services
+builder.Services.AddSingleton<StockTickerService>();
+
+// Configure CORS to allow any origin for SignalR
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .SetIsOriginAllowed(origin => true); // allow any external site
+    });
+});
+
 // Add mock authentication that allows all requests and assigns roles
 builder.Services.AddAuthentication("MockAuth")
     .AddScheme<AuthenticationSchemeOptions, MockAuthenticationHandler>("MockAuth", null);
@@ -38,6 +54,7 @@ if (app.Environment.IsDevelopment())
     app.UseKayaApiExplorer(options);
 }
 
+app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -45,6 +62,7 @@ app.UseAuthorization();
 // Map SignalR hubs
 app.MapHub<NotificationHub>("/notification");
 app.MapHub<ChatHub>("/chat");
+app.MapHub<StockTickerHub>("/stockticker");
 
 app.MapControllers();
 

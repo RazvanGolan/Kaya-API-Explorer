@@ -68,11 +68,45 @@ public class NotificationHub : Hub
     }
 
     /// <summary>
-    /// Get server time
+    /// Get server time with details
     /// </summary>
-    public DateTime GetServerTime()
+    public ServerInfo GetServerInfo()
     {
-        return DateTime.UtcNow;
+        return new ServerInfo
+        {
+            CurrentTime = DateTime.UtcNow,
+            ServerName = Environment.MachineName,
+            Platform = Environment.OSVersion.Platform.ToString(),
+            Version = Environment.Version.ToString(),
+            ProcessorCount = Environment.ProcessorCount,
+            Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64)
+        };
+    }
+
+    /// <summary>
+    /// Get notification statistics
+    /// </summary>
+    public NotificationStats GetNotificationStats()
+    {
+        return new NotificationStats
+        {
+            TotalSent = 12543,
+            TotalDelivered = 12480,
+            TotalFailed = 63,
+            AverageDeliveryTime = TimeSpan.FromMilliseconds(245),
+            TopRecipients = new List<RecipientInfo>
+            {
+                new() { UserId = "user1", NotificationCount = 125 },
+                new() { UserId = "user2", NotificationCount = 98 },
+                new() { UserId = "user3", NotificationCount = 87 }
+            },
+            ByType = new Dictionary<string, int>
+            {
+                { "Info", 8500 },
+                { "Warning", 3200 },
+                { "Error", 843 }
+            }
+        };
     }
 
     public override async Task OnConnectedAsync()
@@ -85,4 +119,30 @@ public class NotificationHub : Hub
     {
         await base.OnDisconnectedAsync(exception);
     }
+}
+
+public class ServerInfo
+{
+    public DateTime CurrentTime { get; set; }
+    public string ServerName { get; set; } = string.Empty;
+    public string Platform { get; set; } = string.Empty;
+    public string Version { get; set; } = string.Empty;
+    public int ProcessorCount { get; set; }
+    public TimeSpan Uptime { get; set; }
+}
+
+public class NotificationStats
+{
+    public int TotalSent { get; set; }
+    public int TotalDelivered { get; set; }
+    public int TotalFailed { get; set; }
+    public TimeSpan AverageDeliveryTime { get; set; }
+    public List<RecipientInfo> TopRecipients { get; set; } = [];
+    public Dictionary<string, int> ByType { get; set; } = new();
+}
+
+public class RecipientInfo
+{
+    public string UserId { get; set; } = string.Empty;
+    public int NotificationCount { get; set; }
 }
