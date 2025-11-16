@@ -334,12 +334,38 @@ function renderMethodCard(method, isConnected) {
 
 // Render logs
 function renderLogs() {
-    return logs.map(log => `
-        <div class="log-entry ${log.type}">
-            <span class="log-timestamp">[${log.timestamp}]</span>
-            <span>${escapeHtml(log.message)}</span>
-        </div>
-    `).join('');
+    return logs.map((log, index) => {
+        const hasData = log.data !== null && log.data !== undefined;
+        const dataStr = hasData ? JSON.stringify(log.data, null, log.expanded ? 2 : 0) : '';
+        
+        return `
+            <div class="log-entry ${log.type}">
+                <div class="log-header">
+                    <span class="log-timestamp">[${log.timestamp}]</span>
+                    <span class="log-message">${escapeHtml(log.message)}</span>
+                    ${hasData ? `
+                        <div class="log-actions">
+                            <button class="log-action-btn" onclick="toggleLogFormat(${index})" title="${log.expanded ? 'Collapse' : 'Expand'} JSON">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="16 18 22 12 16 6"></polyline>
+                                    <polyline points="8 6 2 12 8 18"></polyline>
+                                </svg>
+                            </button>
+                            <button class="log-action-btn" onclick="copyLogData(${index}, event)" title="Copy JSON">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+                ${hasData ? `
+                    <pre class="log-data">${escapeHtml(dataStr)}</pre>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
 }
 
 // Connection Modal
@@ -613,8 +639,7 @@ function clearSearch() {
 // Logging
 function addLog(type, message, data = null) {
     const timestamp = new Date().toLocaleTimeString();
-    const fullMessage = data ? `${message}\n${JSON.stringify(data, null, 2)}` : message;
-    logs.push({ type, message: fullMessage, timestamp });
+    logs.push({ type, message, data, timestamp, expanded: false });
     
     // Keep only last 100 logs
     if (logs.length > 100) {
@@ -627,16 +652,54 @@ function addLog(type, message, data = null) {
 function updateLogsDisplay() {
     const logsContainer = document.getElementById('logsContainer');
     if (logsContainer) {
+        // Check if user was at the bottom before update
+        const wasAtBottom = logsContainer.scrollHeight - logsContainer.scrollTop <= logsContainer.clientHeight + 50;
+        
         logsContainer.innerHTML = logs.length === 0 
             ? '<div class="log-empty">No logs yet</div>' 
             : renderLogs();
-        logsContainer.scrollTop = logsContainer.scrollHeight;
+        
+        // Only auto-scroll if user was already at the bottom
+        if (wasAtBottom) {
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
     }
 }
 
 function clearLogs() {
     logs = [];
     updateLogsDisplay();
+}
+
+// Log actions
+function toggleLogFormat(index) {
+    if (logs[index]) {
+        logs[index].expanded = !logs[index].expanded;
+        updateLogsDisplay();
+    }
+}
+
+function copyLogData(index, evt) {
+    if (logs[index] && logs[index].data) {
+        const jsonStr = JSON.stringify(logs[index].data, null, 2);
+        navigator.clipboard.writeText(jsonStr).then(() => {
+            // Visual feedback
+            const btn = evt.target.closest('.log-action-btn');
+            if (btn) {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                `;
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                }, 1000);
+            }
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
+    }
 }
 
 // Helper functions
