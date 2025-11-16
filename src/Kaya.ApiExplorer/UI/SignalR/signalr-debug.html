@@ -127,7 +127,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label for="hubUrl">Hub URL</label>
-                    <input type="text" id="hubUrl" class="url-input" readonly>
+                    <input type="text" id="hubUrl" class="url-input">
                 </div>
                 <div id="authWarning" class="warning-message" style="display: none;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -164,6 +164,32 @@
                 <div class="modal-actions">
                     <button class="btn btn-outline" onclick="closeMethodModal()">Cancel</button>
                     <button class="btn btn-primary" onclick="invokeMethod()">Invoke</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Handler Modal -->
+    <div id="eventHandlerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Register Event Handler</h3>
+                <button class="modal-close" onclick="closeEventHandlerModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="eventHandlerName">Event Name</label>
+                    <input type="text" id="eventHandlerName" class="url-input">
+                    <p class="help-text">Enter the name of the server-side event you want to listen for</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeEventHandlerModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="registerEventHandler()">Register</button>
                 </div>
             </div>
         </div>

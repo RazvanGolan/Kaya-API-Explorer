@@ -2,6 +2,7 @@
 let hubsData = [];
 let currentHub = null;
 let connections = new Map(); // hubName -> connection
+let registeredHandlers = new Map(); // hubName -> Set of handler names
 let logs = [];
 
 // Initialize the application
@@ -202,6 +203,14 @@ function renderHubDetails() {
                         ${isConnected ? 'Connected' : 'Disconnected'}
                     </div>
                     ${isConnected ? `
+                        <button class="btn btn-purple btn-small" onclick="showEventHandlerModal()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="16"></line>
+                                <line x1="8" y1="12" x2="16" y2="12"></line>
+                            </svg>
+                            Register Handler
+                        </button>
                         <button class="btn btn-danger btn-small" onclick="disconnectHub()">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -210,7 +219,7 @@ function renderHubDetails() {
                             Disconnect
                         </button>
                     ` : `
-                        <button class="btn btn-primary btn-small" onclick="showConnectionModal()">
+                        <button class="btn btn-connect btn-small" onclick="showConnectionModal()">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                 <polyline points="15 3 21 3 21 9"></polyline>
@@ -400,22 +409,12 @@ async function connectToHub() {
         connection.onclose(error => {
             addLog('error', `Connection closed: ${error || 'Unknown reason'}`);
             connections.delete(currentHub.name);
+            registeredHandlers.delete(currentHub.name);
             updateHubsList();
             renderHubDetails();
         });
         
         await connection.start();
-        
-        // Register handlers for all possible server messages AFTER connection starts
-        connection.on('StockUpdate', (data) => {
-            addLog('incoming', `📨 StockUpdate received`, data);
-        });
-        connection.on('Subscribed', (data) => {
-            addLog('success', `✓ Subscribed to ${data}`);
-        });
-        connection.on('Unsubscribed', (data) => {
-            addLog('info', `Unsubscribed from ${data}`);
-        });
         
         connections.set(currentHub.name, connection);
         
@@ -437,6 +436,7 @@ async function disconnectHub() {
     try {
         await connection.stop();
         connections.delete(currentHub.name);
+        registeredHandlers.delete(currentHub.name);
         addLog('info', `Disconnected from ${currentHub.name}`);
         updateHubsList();
         renderHubDetails();
@@ -482,6 +482,58 @@ function openMethodModal(method) {
 
 function closeMethodModal() {
     document.getElementById('methodModal').style.display = 'none';
+}
+
+// Event Handler Modal
+function showEventHandlerModal() {
+    const modal = document.getElementById('eventHandlerModal');
+    document.getElementById('eventHandlerName').value = '';
+    modal.style.display = 'flex';
+}
+
+function closeEventHandlerModal() {
+    document.getElementById('eventHandlerModal').style.display = 'none';
+}
+
+// Register event handler
+function registerEventHandler() {
+    const eventName = document.getElementById('eventHandlerName').value.trim();
+    
+    if (!eventName) {
+        alert('Please enter an event name');
+        return;
+    }
+    
+    const connection = connections.get(currentHub.name);
+    if (!connection) {
+        alert('Not connected to hub');
+        return;
+    }
+    
+    // Check if handler is already registered
+    const handlers = registeredHandlers.get(currentHub.name) || new Set();
+    if (handlers.has(eventName)) {
+        alert(`Handler for "${eventName}" is already registered`);
+        return;
+    }
+    
+    try {
+        // Register the event handler
+        connection.on(eventName, (...args) => {
+            const data = args.length === 1 ? args[0] : args;
+            addLog('incoming', `📨 ${eventName} received`, data);
+        });
+        
+        // Track the registered handler
+        handlers.add(eventName);
+        registeredHandlers.set(currentHub.name, handlers);
+        
+        addLog('success', `✓ Registered event handler for "${eventName}"`);
+        closeEventHandlerModal();
+    } catch (error) {
+        addLog('error', `Failed to register handler: ${error.message}`);
+        alert(`Failed to register handler: ${error.message}`);
+    }
 }
 
 // Invoke hub method

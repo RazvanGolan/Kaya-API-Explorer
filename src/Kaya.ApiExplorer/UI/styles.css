@@ -728,6 +728,7 @@ body {
 
 .url-input {
   flex: 1;
+  width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--border-primary);
   border-radius: 6px;
@@ -735,6 +736,8 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: all 0.3s ease;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .url-input:focus, .method-select:focus {
