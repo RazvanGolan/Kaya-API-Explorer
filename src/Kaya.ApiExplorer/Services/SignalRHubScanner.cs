@@ -220,7 +220,7 @@ public class SignalRHubScanner : ISignalRHubScanner
             Name = param.Name ?? "unknown",
             Type = typeName,
             Required = !param.HasDefaultValue && 
-                      (paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null),
+                      paramType.IsValueType && Nullable.GetUnderlyingType(paramType) is null,
             DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
             Example = example
         };

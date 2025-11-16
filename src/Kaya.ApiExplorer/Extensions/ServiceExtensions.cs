@@ -54,18 +54,13 @@ public static class ServiceCollectionExtensions
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app, string routePrefix = "/api-explorer")
+    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app)
     {
-        return app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
-    }
-
-    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app, KayaApiExplorerOptions? options = null)
-    {
+        var options = app.ApplicationServices.GetService<KayaApiExplorerOptions>();
         var routePrefix = options?.Middleware.RoutePrefix ?? "/api-explorer";
         var result = app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
         
-        // Add SignalR debug middleware if enabled
-        if (options?.SignalRDebug.Enabled == true)
+        if (options?.SignalRDebug.Enabled is true)
         {
             result = result.UseMiddleware<SignalRDebugMiddleware>(options.SignalRDebug.RoutePrefix);
         }

@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Add SignalR
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
 // Add SignalR services
 builder.Services.AddSingleton<StockTickerService>();
@@ -50,8 +50,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    var options = app.Services.GetRequiredService<Kaya.ApiExplorer.Configuration.KayaApiExplorerOptions>();
-    app.UseKayaApiExplorer(options);
+    app.UseKayaApiExplorer();
 }
 
 app.UseCors();

@@ -449,6 +449,7 @@ async function connectToHub() {
         updateHubsList();
         renderHubDetails();
     } catch (error) {
+        console.error('Connection failed:', error);
         addLog('error', `Connection failed: ${error.message}`);
         alert(`Failed to connect: ${error.message}`);
     }
@@ -557,6 +558,7 @@ function registerEventHandler() {
         addLog('success', `✓ Registered event handler for "${eventName}"`);
         closeEventHandlerModal();
     } catch (error) {
+        console.error('Failed to register handler:', error);
         addLog('error', `Failed to register handler: ${error.message}`);
         alert(`Failed to register handler: ${error.message}`);
     }
@@ -580,18 +582,22 @@ async function invokeMethod() {
         
         for (const input of paramInputs) {
             const value = input.value.trim();
-            if (value) {
-                try {
-                    args.push(JSON.parse(value));
-                } catch (e) {
-                    // If not valid JSON, treat as string
-                    args.push(value);
+            if (value.length === 0) {
+                // Skip optional parameters entirely
+                if (!input.required) {
+                    continue;
                 }
-            } else if (input.required) {
+
+                // Required parameter but empty → stop
                 alert(`Parameter ${input.dataset.paramName} is required`);
                 return;
-            } else {
-                args.push(null);
+            }
+
+            // Parse JSON if possible
+            try {
+                args.push(JSON.parse(value));
+            } catch {
+                args.push(value);
             }
         }
         
@@ -608,6 +614,7 @@ async function invokeMethod() {
         
         closeMethodModal();
     } catch (error) {
+        console.error('Method invocation failed:', error);
         addLog('error', `${methodName} failed: ${error.message}`);
         alert(`Failed to invoke method: ${error.message}`);
     }
