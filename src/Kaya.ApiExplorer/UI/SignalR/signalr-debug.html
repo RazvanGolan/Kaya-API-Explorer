@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SignalR Debug - Kaya</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="signalr-debug.css">
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 2v4M12 18v4M22 12h-4M6 12H2"></path>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h1>SignalR Debug</h1>
+                        <p>Real-time Hub Testing</p>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input type="text" id="searchInput" placeholder="Search hubs..." class="search-input">
+                    <button type="button" id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <div id="hubsList" class="controllers-list">
+                    <!-- Hubs will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="main-header">
+                <div class="header-info">
+                    <h2 id="pageTitle">SignalR Hubs</h2>
+                    <p id="pageSubtitle">Connect to hubs and test real-time methods</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-outline" id="apiExplorerBtn" onclick="window.location.href = (window.KayaSignalRDebugConfig?.apiExplorerRoute || '/api-explorer')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16,18 22,12 16,6"></polyline>
+                            <polyline points="8,6 2,12 8,18"></polyline>
+                        </svg>
+                        API Explorer
+                    </button>
+                    <button class="btn btn-outline" id="authorizeBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <circle cx="12" cy="16" r="1"></circle>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        Authorize
+                    </button>
+                    <button class="btn btn-outline theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                        <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span class="theme-text">Dark</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div id="welcomeScreen" class="welcome-screen">
+                    <div class="welcome-content">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 2v4M12 18v4M22 12h-4M6 12H2"></path>
+                        </svg>
+                        <h2>Welcome to SignalR Debug</h2>
+                        <p>Select a hub from the sidebar to begin testing</p>
+                    </div>
+                </div>
+
+                <div id="hubDetailView" class="hub-detail-view" style="display: none;">
+                    <!-- Hub details will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connection Modal -->
+    <div id="connectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Connect to Hub</h3>
+                <button class="modal-close" onclick="closeConnectionModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="hubUrl">Hub URL</label>
+                    <input type="text" id="hubUrl" class="url-input">
+                </div>
+                <div id="authWarning" class="warning-message" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <span>This hub requires authorization. Use the <strong>Authorize</strong> button in the header to configure authentication.</span>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeConnectionModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="connectToHub()">Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Method Invocation Modal -->
+    <div id="methodModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="methodModalTitle">Invoke Method</h3>
+                <button class="modal-close" onclick="closeMethodModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="methodParameters">
+                    <!-- Parameters will be populated dynamically -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeMethodModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="invokeMethod()">Invoke</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Handler Modal -->
+    <div id="eventHandlerModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Register Event Handler</h3>
+                <button class="modal-close" onclick="closeEventHandlerModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="eventHandlerName">Event Name</label>
+                    <input type="text" id="eventHandlerName" class="url-input">
+                    <p class="help-text">Enter the name of the server-side event you want to listen for</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" onclick="closeEventHandlerModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="registerEventHandler()">Register</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authorization Modal -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3>Authorization</h3>
+                    <p>Configure SignalR authentication</p>
+                </div>
+                <button class="modal-close" id="closeAuth">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="auth-type-selector">
+                    <label class="auth-type-label">Authentication Type</label>
+                    <select id="authType" class="method-select" onchange="switchAuthType()">
+                        <option value="none">No Authentication</option>
+                        <option value="bearer">Bearer Token (JWT)</option>
+                        <option value="apikey">API Key</option>
+                        <option value="oauth">OAuth 2.0</option>
+                    </select>
+                </div>
+
+                <!-- No Authentication -->
+                <div id="authNone" class="auth-section">
+                    <p class="help-text">No authentication will be used for hub connections.</p>
+                </div>
+
+                <!-- Bearer Token (JWT) -->
+                <div id="authBearer" class="auth-section hidden">
+                    <div class="form-group">
+                        <label>Bearer Token (JWT)</label>
+                        <div class="password-input-container">
+                            <input type="password" id="authToken" placeholder="Enter your JWT token" class="auth-input secure-input">
+                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('authToken', this)">
+                                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="help-text">This token will be automatically added to hub connections.</p>
+                    </div>
+                </div>
+
+                <!-- API Key -->
+                <div id="authApiKey" class="auth-section hidden">
+                    <div class="form-group">
+                        <label>API Key Name</label>
+                        <input type="text" id="apiKeyName" placeholder="Enter API key header name (e.g., X-API-Key)" class="auth-input" value="X-API-Key">
+                        <p class="help-text">The name of the header that will contain your API key.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key Value</label>
+                        <div class="password-input-container">
+                            <input type="password" id="apiKeyValue" placeholder="Enter your API key" class="auth-input secure-input">
+                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('apiKeyValue', this)">
+                                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="help-text">This key will be automatically added as a custom header to hub connections.</p>
+                    </div>
+                </div>
+
+                <!-- OAuth 2.0 -->
+                <div id="authOAuth" class="auth-section hidden">
+                    <div class="form-group">
+                        <label>Client ID</label>
+                        <input type="text" id="oauthClientId" placeholder="Enter OAuth client ID" class="auth-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Authorization URL</label>
+                        <input type="text" id="oauthAuthUrl" placeholder="Enter authorization URL" class="auth-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Token URL</label>
+                        <input type="text" id="oauthTokenUrl" placeholder="Enter token URL" class="auth-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Scopes (comma-separated)</label>
+                        <input type="text" id="oauthScopes" placeholder="Enter scopes (e.g., read, write)" class="auth-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Access Token</label>
+                        <div class="password-input-container">
+                            <input type="password" id="oauthAccessToken" placeholder="OAuth access token (if available)" class="auth-input secure-input">
+                            <button type="button" class="toggle-visibility" onclick="togglePasswordVisibility('oauthAccessToken', this)">
+                                <svg class="eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg class="eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="help-text">Manually enter an access token, or use the "Authorize" button below to get one.</p>
+                    </div>
+                    <button id="oauthAuthorizeBtn" class="btn btn-outline" onclick="initiateOAuthFlow()" style="margin-bottom: 10px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15,3 21,3 21,9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        Authorize with OAuth
+                    </button>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="saveAuthBtn" class="btn btn-primary">Save Configuration</button>
+                    <button id="clearAuthBtn" class="btn btn-outline">Clear</button>
+                </div>
+                
+                <div id="authStatus" class="auth-status hidden">
+                    <!-- Status will be updated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="signalr-debug.js"></script>
+</body>
+</html>

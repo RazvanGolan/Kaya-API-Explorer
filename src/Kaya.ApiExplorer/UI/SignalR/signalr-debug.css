@@ -1,0 +1,574 @@
+/* SignalR-specific CSS variables */
+:root {
+  --connected-bg: #10b981;
+  --disconnected-bg: #ef4444;
+}
+
+[data-theme="dark"] {
+  --connected-bg: #10b981;
+  --disconnected-bg: #ef4444;
+}
+
+/* SignalR-specific brand icon gradient */
+.brand-icon {
+  background: linear-gradient(135deg, var(--accent-primary), #8b5cf6) !important;
+}
+
+/* Theme icon display logic */
+[data-theme="light"] .moon-icon,
+[data-theme="dark"] .sun-icon {
+  display: none;
+}
+
+[data-theme="light"] .sun-icon,
+[data-theme="dark"] .moon-icon {
+  display: block;
+}
+
+/* Hub list uses same class as controllers-list for consistency */
+.controllers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* SignalR Hub List Specific Styles */
+.hub-item {
+  padding: 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hub-item:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.hub-item.active {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-light);
+}
+
+.hub-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.hub-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.hub-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.hub-status.connected {
+  background: var(--connected-bg);
+  box-shadow: 0 0 8px var(--connected-bg);
+}
+
+.hub-status.disconnected {
+  background: var(--disconnected-bg);
+}
+
+.hub-path {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+/* Hub Detail View */
+.hub-detail-view {
+  width: 100%;
+  overflow: hidden;
+}
+
+.hub-header {
+  margin-bottom: 24px;
+}
+
+.hub-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.hub-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.connection-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.connection-status.connected {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.connection-status.disconnected {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.hub-info {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.info-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+/* Methods Section */
+.methods-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.methods-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.method-card {
+  padding: 16px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  transition: all 0.2s ease;
+}
+
+.method-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+.method-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.method-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.method-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.method-params {
+  margin-bottom: 12px;
+}
+
+.params-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.param-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.param-type {
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.param-required {
+  font-size: 10px;
+  padding: 2px 4px;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.method-return {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.return-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.return-type {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* Logs Section */
+.logs-section {
+  margin-top: 24px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.logs-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.log-entry {
+  padding: 8px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border-left: 3px solid;
+  overflow: hidden;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.log-message {
+  flex: 1;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.log-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.log-action-btn {
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.log-action-btn:hover {
+  opacity: 1;
+}
+
+.log-data {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  margin-bottom: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
+}
+
+[data-theme="dark"] .log-data {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.log-entry.info {
+  background: var(--info-bg);
+  border-color: var(--info-border);
+  color: var(--info-text);
+}
+
+.log-entry.success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.log-entry.error {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-text);
+}
+
+.log-entry.warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.log-entry.incoming {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #6d28d9;
+}
+
+[data-theme="dark"] .log-entry.incoming {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+.log-timestamp {
+  opacity: 0.7;
+  margin-right: 8px;
+}
+
+.log-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 24px;
+}
+
+/* SignalR-specific button styles */
+.btn-success {
+  background: #10b981;
+  color: white;
+  border: 1px solid transparent;
+}
+
+.btn-success:hover {
+  background: #059669;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-danger {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-connect {
+  background: var(--accent-primary);
+  color: white;
+  border: 1px solid var(--accent-primary);
+}
+
+.btn-connect:hover {
+  background: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.btn-purple {
+  background: #ede9fe;
+  color: #8b5cf6;
+  border: 1px solid #ccbdef;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .btn-purple {
+  background: rgba(139, 92, 246, 0.1);
+  color: #c4b5fd;
+  border: 1px solid #ccbdef;
+}
+
+.btn-purple:hover {
+  background: #ddd6fe;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+[data-theme="dark"] .btn-purple:hover {
+  background: rgba(139, 92, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.btn-purple:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Override btn-primary disabled state for better visibility */
+.btn-primary:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Warning Message */
+.warning-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  font-size: 14px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.warning-message svg {
+  flex-shrink: 0;
+  color: var(--warning-text);
+}
+
+/* Content Area Override */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 32px;
+  min-width: 0;
+}
+
+.welcome-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.welcome-content {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.welcome-content svg {
+  margin-bottom: 24px;
+  opacity: 0.5;
+}
+
+.welcome-content h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .content-area {
+    padding: 16px;
+  }
+}

@@ -9,18 +9,6 @@ namespace Kaya.ApiExplorer.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private static IServiceCollection AddKayaApiExplorer(this IServiceCollection services, Action<KayaApiExplorerOptions> configure)
-    {
-        services.AddSingleton<IEndpointScanner, EndpointScanner>();
-        services.AddSingleton<IUIService, UIService>();
-        
-        var options = new KayaApiExplorerOptions();
-        configure(options);
-
-        services.AddSingleton(options);
-        return services;
-    }
-    
     /// <summary>
     /// Adds Kaya API Explorer in middleware mode with the specified route prefix and theme
     /// </summary>
@@ -36,18 +24,47 @@ public static class ServiceCollectionExtensions
             options.Middleware.DefaultTheme = defaultTheme;
         });
     }
+    
+    /// <summary>
+    /// Adds Kaya API Explorer with full configuration options including SignalR debugging
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="configureOptions">Configuration action for all options</param>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddKayaApiExplorer(this IServiceCollection services, Action<KayaApiExplorerOptions> configureOptions)
+    {
+        services.AddSingleton<IEndpointScanner, EndpointScanner>();
+        services.AddSingleton<IUIService, UIService>();
+        
+        var options = new KayaApiExplorerOptions();
+        configureOptions(options);
+
+        services.AddSingleton(options);
+        
+        // Register SignalR debugging services if enabled
+        if (options.SignalRDebug.Enabled)
+        {
+            services.AddSingleton<ISignalRHubScanner, SignalRHubScanner>();
+            services.AddSingleton<ISignalRUIService, SignalRUIService>();
+        }
+        
+        return services;
+    }
 }
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app, string routePrefix = "/api-explorer")
+    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app)
     {
-        return app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
-    }
-
-    public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app, KayaApiExplorerOptions? options = null)
-    {
+        var options = app.ApplicationServices.GetService<KayaApiExplorerOptions>();
         var routePrefix = options?.Middleware.RoutePrefix ?? "/api-explorer";
-        return app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
+        var result = app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
+        
+        if (options?.SignalRDebug.Enabled is true)
+        {
+            result = result.UseMiddleware<SignalRDebugMiddleware>(options.SignalRDebug.RoutePrefix);
+        }
+        
+        return result;
     }
 }

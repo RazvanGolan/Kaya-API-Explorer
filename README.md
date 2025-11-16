@@ -17,6 +17,7 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 - 📱 **Request Builder**: Build and test custom HTTP requests with headers, parameters, and body
 - 🔍 **Advanced Search**: Search and filter endpoints by path, method, name, or description
 - 🌙 **Theme Support**: Toggle between light and dark modes for better user experience
+- 🔌 **SignalR Debug Tool**: Interactive real-time hub testing and debugging - connect to hubs, invoke methods, register event handlers, and receive incoming messages
 
 ## Quick Start
 
@@ -43,7 +44,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseKayaApiExplorer("/api-explorer");
+    app.UseKayaApiExplorer();
 }
 
 app.UseHttpsRedirection();
@@ -68,7 +69,7 @@ cd src/Demo.WebApi
 dotnet run
 ```
 
-Then navigate to `https://localhost:7000/api-explorer` (or your app's HTTPS URL) to see the API Explorer in action.
+Then navigate to `http://localhost:5121/api-explorer` to see the API Explorer in action.
 
 ## How It Works
 
@@ -105,35 +106,47 @@ builder.Services.AddKayaApiExplorer();
 builder.Services.AddKayaApiExplorer(routePrefix: "/api-docs", defaultTheme: "dark");
 ```
 
-### Configuration via appsettings.json
+### Advanced Configuration with SignalR Debugging
 
-You can also configure Kaya API Explorer through your `appsettings.json` file:
+```csharp
+using Kaya.ApiExplorer.Extensions;
 
-```json
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSignalR(); // If using SignalR
+
+builder.Services.AddKayaApiExplorer(options =>
 {
-  "KayaApiExplorer": {
-    "RoutePrefix": "/api-docs",
-    "DefaultTheme": "dark"
-  }
+    options.Middleware.RoutePrefix = "/api-explorer";
+    options.Middleware.DefaultTheme = "light";
+    
+    // Enable SignalR debugging (optional)
+    options.SignalRDebug.Enabled = true;
+    options.SignalRDebug.RoutePrefix = "/signalr-debug";
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseKayaApiExplorer();
 }
+
+// Map your SignalR hubs
+
+app.Run();
 ```
 
-Then bind the configuration in your `Program.cs`:
+### SignalR Debugging
 
-```csharp
-builder.Services.Configure<KayaApiExplorerOptions>(
-    builder.Configuration.GetSection("KayaApiExplorer"));
-```
+The SignalR Debug Tool provides:
+- **Hub Connection Management**: Connect/disconnect from SignalR hubs with authentication support
+- **Method Invocation**: Execute hub methods with parameters and see real-time responses
+- **Event Handlers**: Register custom event handlers to receive server-sent messages
+- **Real-time Logging**: Monitor all hub activity including connections, method calls, and incoming events
+- **Interactive Testing**: Test your SignalR implementation without writing client code
 
-### Custom Route Prefix
-
-You can customize the route where the API Explorer is served:
-
-```csharp
-app.UseKayaApiExplorer("/my-custom-docs");
-```
-
-### UI Customization
+### Embedded UI Architecture
 
 The UI is built with embedded HTML, CSS, and JavaScript files that are compiled into the assembly. This ensures:
 - **Reliable deployment**: No external file dependencies
@@ -142,36 +155,12 @@ The UI is built with embedded HTML, CSS, and JavaScript files that are compiled 
 
 The middleware integrates seamlessly into your ASP.NET Core pipeline, serving the API Explorer at your specified route without any external dependencies or separate processes.
 
-## Project Structure
-
-```
-src/
-├── Kaya.ApiExplorer/          # Main NuGet package
-│   ├── Extensions/            # Service registration extensions
-│   ├── Middleware/            # HTTP middleware
-│   ├── Models/               # Data models
-│   ├── Services/             # Core scanning logic and UI service
-│   └── UI/                   # Embedded HTML, CSS, JavaScript and logo files
-├── Demo.WebApi/              # Demo application
-│   ├── Controllers/          # Sample controllers
-│   └── Models/              # Sample models
-└── tests/
-    └── Kaya.ApiExplorer.Tests/  # Unit tests
-```
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Roadmap
-
-### Current TODOs
-
-- [ ] **Controller Documentation**: Read and display controller XML documentation if available
-
 ### Future Features
 
 - [ ] Support for XML documentation comments
-- [ ] Export to OpenAPI/Swagger format
-- [ ] Debugging SignalR
+- [ ] Add gRPC debug support
 - [ ] Add GraphQL support
