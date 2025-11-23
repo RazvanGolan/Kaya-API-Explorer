@@ -191,4 +191,84 @@ public class ProductsController : ControllerBase
 
         return Ok(products);
     }
+
+    /// <summary>
+    /// Uploads a product image
+    /// </summary>
+    /// <param name="id">Product ID</param>
+    /// <param name="file">Image file to upload</param>
+    /// <returns>Upload result</returns>
+    [HttpPost("{id}/image")]
+    [Authorize(Roles = "Admin")]
+    public ActionResult UploadProductImage(int id, IFormFile file)
+    {
+        var product = _products.FirstOrDefault(p => p.Id == id);
+        if (product == null)
+        {
+            return NotFound($"Product with ID {id} not found");
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded");
+        }
+
+        // Validate file type
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            return BadRequest("Invalid file type. Only image files are allowed.");
+        }
+
+        // Validate file size (max 5MB)
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            return BadRequest("File size exceeds 5MB limit");
+        }
+
+        return Ok(new
+        {
+            productId = id,
+            fileName = file.FileName,
+            fileSize = file.Length,
+            contentType = file.ContentType,
+            uploadedAt = DateTime.UtcNow,
+            message = "Image uploaded successfully"
+        });
+    }
+
+    /// <summary>
+    /// Imports products from a CSV file
+    /// </summary>
+    /// <param name="file">CSV file containing product data</param>
+    /// <returns>Import result</returns>
+    [HttpPost("import")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> ImportProducts(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (extension != ".csv")
+        {
+            return BadRequest("Invalid file type. Only CSV files are allowed.");
+        }
+
+        using var reader = new StreamReader(file.OpenReadStream());
+        var content = await reader.ReadToEndAsync();
+        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        return Ok(new
+        {
+            fileName = file.FileName,
+            fileSize = file.Length,
+            linesProcessed = lines.Length,
+            importedAt = DateTime.UtcNow,
+            message = $"Processed {lines.Length} lines from CSV file"
+        });
+    }
 }

@@ -138,14 +138,18 @@ public class EndpointScanner : IEndpointScanner
     private static ApiRequestBody? GetMethodRequestBody(MethodInfo method)
     {
         var bodyParam = method.GetParameters()
-            .FirstOrDefault(p => p.GetCustomAttribute<FromBodyAttribute>() != null ||
-                               (!p.ParameterType.IsPrimitive && 
-                                p.ParameterType != typeof(string) && 
-                                p.ParameterType != typeof(DateTime) && 
-                                p.ParameterType != typeof(Guid) &&
-                                p.GetCustomAttribute<FromQueryAttribute>() == null &&
-                                p.GetCustomAttribute<FromRouteAttribute>() == null &&
-                                p.GetCustomAttribute<FromHeaderAttribute>() == null));
+            .FirstOrDefault(p => {
+                if (IsFileParameter(p.ParameterType)) return false;
+                
+                return p.GetCustomAttribute<FromBodyAttribute>() != null ||
+                       (!p.ParameterType.IsPrimitive && 
+                        p.ParameterType != typeof(string) && 
+                        p.ParameterType != typeof(DateTime) && 
+                        p.ParameterType != typeof(Guid) &&
+                        p.GetCustomAttribute<FromQueryAttribute>() == null &&
+                        p.GetCustomAttribute<FromRouteAttribute>() == null &&
+                        p.GetCustomAttribute<FromHeaderAttribute>() == null);
+            });
 
         if (bodyParam == null) return null;
 
@@ -251,14 +255,58 @@ public class EndpointScanner : IEndpointScanner
         return $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
+    private static bool IsFileParameter(Type parameterType)
+    {
+        // Check for IFormFile by fully qualified name to avoid dependency
+        if (parameterType.FullName == "Microsoft.AspNetCore.Http.IFormFile")
+            return true;
+
+        // Check for IFormFileCollection
+        if (parameterType.FullName == "Microsoft.AspNetCore.Http.IFormFileCollection")
+            return true;
+
+        // Check if type implements IFormFile interface
+        var iFormFileType = parameterType.GetInterfaces()
+            .FirstOrDefault(i => i.FullName == "Microsoft.AspNetCore.Http.IFormFile");
+        if (iFormFileType != null)
+            return true;
+
+        // Check for collections/arrays of IFormFile (List<IFormFile>, IEnumerable<IFormFile>, etc.)
+        if (parameterType.IsGenericType)
+        {
+            var genericArgs = parameterType.GetGenericArguments();
+            if (genericArgs.Any(t => IsFileParameter(t)))
+                return true;
+        }
+
+        // Check for array of IFormFile
+        if (parameterType.IsArray)
+        {
+            var elementType = parameterType.GetElementType();
+            if (elementType != null && IsFileParameter(elementType))
+                return true;
+        }
+
+        return false;
+    }
+
     private static List<ApiParameter> GetMethodParameters(MethodInfo method, string routePath)
     {
         var parameters = new List<ApiParameter>();
 
         foreach (var param in method.GetParameters())
         {
-            var parameterSource = DetermineParameterSource(param, routePath);
+            var isFileParameter = IsFileParameter(param.ParameterType);
+            var parameterSource = isFileParameter ? "File" : DetermineParameterSource(param, routePath);
             var typeName = ReflectionHelper.GetFriendlyTypeName(param.ParameterType);
+            
+            // Get the actual header name if specified in FromHeader attribute
+            string? headerName = null;
+            if (parameterSource == "Header")
+            {
+                var fromHeaderAttr = param.GetCustomAttribute<FromHeaderAttribute>();
+                headerName = fromHeaderAttr?.Name;
+            }
             
             var apiParam = new ApiParameter
             {
@@ -267,10 +315,12 @@ public class EndpointScanner : IEndpointScanner
                 Required = param is { HasDefaultValue: false, ParameterType.IsValueType: false } ||
                           (param.ParameterType.IsValueType && Nullable.GetUnderlyingType(param.ParameterType) == null),
                 DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
-                Source = parameterSource
+                Source = parameterSource,
+                IsFile = isFileParameter,
+                HeaderName = headerName
             };
 
-            if (ReflectionHelper.IsComplexType(param.ParameterType))
+            if (!isFileParameter && ReflectionHelper.IsComplexType(param.ParameterType))
             {
                 apiParam.Schema = ReflectionHelper.GenerateSchemaForType(param.ParameterType);
             }
@@ -294,6 +344,9 @@ public class EndpointScanner : IEndpointScanner
 
         var fromHeaderAttr = param.GetCustomAttribute<FromHeaderAttribute>();
         if (fromHeaderAttr != null) return "Header";
+
+        var fromFormAttr = param.GetCustomAttribute<FromFormAttribute>();
+        if (fromFormAttr != null) return "Form";
 
         if (!string.IsNullOrEmpty(param.Name) && routePath.Contains($"{{{param.Name}}}"))
         {

@@ -156,14 +156,19 @@ function buildRequestData(config) {
     finalUrl = window.location.origin + (finalUrl.startsWith('/') ? '' : '/') + finalUrl;
   }
   
-  const headers = { 'Content-Type': 'application/json', ...customHeaders };
+  const hasFileParams = endpoint && endpoint.parameters && 
+    endpoint.parameters.some(p => p.source === "File" || p.isFile);
+  
+  const headers = hasFileParams ? { ...customHeaders } : { 'Content-Type': 'application/json', ...customHeaders };
   
   if (endpoint && endpoint.parameters && endpointIdentifier) {
     const headerParams = endpoint.parameters.filter(p => p.source === "Header") || [];
     headerParams.forEach(param => {
       const paramValue = document.getElementById(`param-${endpointIdentifier}-${param.name}`)?.value;
       if (paramValue) {
-        headers[param.name] = paramValue;
+        // Use the HeaderName if specified, otherwise use the parameter name
+        const headerName = param.headerName || param.name;
+        headers[headerName] = paramValue;
       }
     });
   }
@@ -180,32 +185,111 @@ function buildRequestData(config) {
   let requestBody = null;
   const method = endpoint ? endpoint.httpMethodType : 'GET';
   
-  if (method !== 'GET' && endpoint && endpoint.requestBody && endpointIdentifier) {
-    const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
-    const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
-    
-    let requestBodyContent = '';
-    
-    if (keyValueEditor && keyValueEditor.style.display !== 'none') {
-      const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
-      if (Object.keys(keyValueData).length > 0) {
-        requestBodyContent = JSON.stringify(keyValueData);
-      }
-    } else if (bodyTextarea && bodyTextarea.value.trim()) {
-      requestBodyContent = bodyTextarea.value.trim();
-    }
-    
-    if (requestBodyContent) {
-      if (validateBody) {
-        try {
-          if (headers['Content-Type'].includes('json')) {
-            JSON.parse(requestBodyContent);
+  if (method !== 'GET' && endpoint && endpointIdentifier) {
+    // Handle file uploads with multipart/form-data
+    if (hasFileParams) {
+      const formData = new FormData();
+      
+      // Add file parameters
+      const fileParams = endpoint.parameters.filter(p => p.source === "File" || p.isFile);
+      fileParams.forEach(param => {
+        const fileInput = document.getElementById(`param-file-${endpointIdentifier}-${param.name}`);
+        if (fileInput && fileInput.files.length > 0) {
+          // Check if this is an array/collection type that accepts multiple files
+          const isMultiple = param.type.includes('[]') || 
+                           param.type.toLowerCase().includes('list') || 
+                           param.type.toLowerCase().includes('collection') ||
+                           param.type.toLowerCase().includes('enumerable');
+          
+          if (isMultiple) {
+            // Append all files for array/collection types
+            Array.from(fileInput.files).forEach(file => {
+              formData.append(param.name, file);
+            });
+          } else {
+            // Append only the first file for single file parameters
+            formData.append(param.name, fileInput.files[0]);
           }
-        } catch (e) {
-          throw new Error('Invalid JSON in request body: ' + e.message);
+        }
+      });
+      
+      // Add form parameters (FromForm)
+      const formParams = endpoint.parameters.filter(p => p.source === "Form");
+      formParams.forEach(param => {
+        const paramInput = document.getElementById(`param-${endpointIdentifier}-${param.name}`);
+        if (paramInput && paramInput.value) {
+          formData.append(param.name, paramInput.value);
+        }
+      });
+      
+      // Add other Body parameters as form fields (legacy support)
+      const bodyParams = endpoint.parameters.filter(p => p.source === "Body");
+      bodyParams.forEach(param => {
+        const paramInput = document.getElementById(`param-${endpointIdentifier}-${param.name}`);
+        if (paramInput && paramInput.value) {
+          formData.append(param.name, paramInput.value);
+        }
+      });
+      
+      // Add request body content if exists (for additional JSON data)
+      if (endpoint.requestBody) {
+        const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
+        const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
+        
+        let requestBodyContent = '';
+        
+        if (keyValueEditor && keyValueEditor.style.display !== 'none') {
+          const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
+          if (Object.keys(keyValueData).length > 0) {
+            requestBodyContent = JSON.stringify(keyValueData);
+          }
+        } else if (bodyTextarea && bodyTextarea.value.trim()) {
+          requestBodyContent = bodyTextarea.value.trim();
+        }
+        
+        if (requestBodyContent) {
+          // Add body content as individual form fields
+          try {
+            const bodyData = JSON.parse(requestBodyContent);
+            Object.entries(bodyData).forEach(([key, value]) => {
+              formData.append(key, typeof value === 'object' ? JSON.stringify(value) : value);
+            });
+          } catch (e) {
+            // If not JSON, add as single field
+            formData.append('data', requestBodyContent);
+          }
         }
       }
-      requestBody = requestBodyContent;
+      
+      requestBody = formData;
+    } else if (endpoint.requestBody) {
+      // Regular JSON body
+      const bodyTextarea = document.getElementById(`request-body-${endpointIdentifier}`);
+      const keyValueEditor = document.getElementById(`request-body-kv-${endpointIdentifier}`);
+      
+      let requestBodyContent = '';
+      
+      if (keyValueEditor && keyValueEditor.style.display !== 'none') {
+        const keyValueData = getKeyValueData(`request-body-kv-${endpointIdentifier}`);
+        if (Object.keys(keyValueData).length > 0) {
+          requestBodyContent = JSON.stringify(keyValueData);
+        }
+      } else if (bodyTextarea && bodyTextarea.value.trim()) {
+        requestBodyContent = bodyTextarea.value.trim();
+      }
+      
+      if (requestBodyContent) {
+        if (validateBody) {
+          try {
+            if (headers['Content-Type'].includes('json')) {
+              JSON.parse(requestBodyContent);
+            }
+          } catch (e) {
+            throw new Error('Invalid JSON in request body: ' + e.message);
+          }
+        }
+        requestBody = requestBodyContent;
+      }
     }
   }
   
@@ -618,16 +702,23 @@ function renderParameters(endpoint) {
 
   return endpoint.parameters
     .map(
-      (param) => `
+      (param) => {
+        const isFileParam = param.source === "File" || param.isFile;
+        const requiredBadge = param.required ? '<span class="badge delete">Required</span>' : "";
+        const fileIcon = isFileParam ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>' : '';
+        
+        return `
         <div class="parameter-item">
             <div class="parameter-header">
-                <code class="parameter-name">${param.name}</code>
+                <code class="parameter-name">${fileIcon}${param.name}</code>
                 <span class="badge">${param.type}</span>
-                ${param.required ? '<span class="badge delete">Required</span>' : ""}
+                ${requiredBadge}
+                ${isFileParam ? '<span class="badge" style="background: #8b5cf6;">File Upload</span>' : ''}
             </div>
-            <p class="parameter-description">${param.description}</p>
+            <p class="parameter-description">${param.description || (isFileParam ? 'File to upload' : '')}</p>
         </div>
-    `,
+    `;
+      }
     )
     .join("")
 }
@@ -743,6 +834,8 @@ function renderTryItOutParameters(endpoint, endpointIdentifier) {
   const queryParams = endpoint.parameters.filter(p => p.source === "Query");
   const routeParams = endpoint.parameters.filter(p => p.source === "Route");
   const headerParams = endpoint.parameters.filter(p => p.source === "Header");
+  const fileParams = endpoint.parameters.filter(p => p.source === "File" || p.isFile);
+  const formParams = endpoint.parameters.filter(p => p.source === "Form");
 
   let parametersHtml = '';
 
@@ -780,13 +873,76 @@ function renderTryItOutParameters(endpoint, endpointIdentifier) {
     parametersHtml += `
       <div class="tryout-parameter-group">
         <h4>Header Parameters</h4>
-        ${headerParams.map(param => `
+        ${headerParams.map(param => {
+          const displayName = param.headerName || param.name;
+          const placeholder = param.headerName ? `${param.headerName} (${param.name})` : param.name;
+          return `
+          <div class="tryout-parameter-row">
+            <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${displayName}:</label>
+            <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${placeholder}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
+            <span class="tryout-parameter-type">${param.type}</span>
+          </div>
+        `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  if (formParams.length > 0) {
+    parametersHtml += `
+      <div class="tryout-parameter-group">
+        <h4>Form Data</h4>
+        ${formParams.map(param => `
           <div class="tryout-parameter-row">
             <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
             <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
             <span class="tryout-parameter-type">${param.type}</span>
           </div>
         `).join('')}
+      </div>
+    `;
+  }
+
+  if (fileParams.length > 0) {
+    parametersHtml += `
+      <div class="tryout-parameter-group">
+        <h4>File Upload</h4>
+        ${fileParams.map(param => {
+          // Check if this is an array or collection type (multiple files)
+          const isMultiple = param.type.includes('[]') || 
+                           param.type.toLowerCase().includes('list') || 
+                           param.type.toLowerCase().includes('collection') ||
+                           param.type.toLowerCase().includes('enumerable');
+          const multipleAttr = isMultiple ? 'multiple' : '';
+          const helpText = isMultiple ? 'Select one or more files to upload' : 'Select a file to upload';
+          const inputId = `param-file-${endpointIdentifier}-${param.name}`;
+          const infoId = `file-info-${endpointIdentifier}-${param.name}`;
+          
+          return `
+          <div class="tryout-parameter-row" style="align-items: stretch;">
+            <label class="tryout-parameter-label ${param.required ? 'required' : ''}" style="padding-top: 8px;">${param.name}:</label>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+              <div class="file-input-wrapper">
+                <input type="file" 
+                       id="${inputId}" 
+                       class="file-input" 
+                       ${multipleAttr}
+                       onchange="updateFileInputLabel('${inputId}', '${infoId}')">
+                <label for="${inputId}" class="file-input-label" id="label-${inputId}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span id="label-text-${inputId}">${helpText}</span>
+                </label>
+              </div>
+              <div class="file-input-info" id="${infoId}"></div>
+            </div>
+            <span class="tryout-parameter-type">${param.type}</span>
+          </div>
+        `;
+        }).join('')}
       </div>
     `;
   }
@@ -892,6 +1048,50 @@ function copyToClipboard(button) {
 function addHeader() {
   requestHeaders.push({ key: "", value: "" })
   renderHeaders()
+}
+
+function updateFileInputLabel(inputId, infoId) {
+  const input = document.getElementById(inputId);
+  const label = document.getElementById(`label-${inputId}`);
+  const labelText = document.getElementById(`label-text-${inputId}`);
+  const infoContainer = document.getElementById(infoId);
+  
+  if (!input || !label || !labelText || !infoContainer) return;
+  
+  const files = input.files;
+  
+  if (files.length === 0) {
+    // No files selected - reset to default
+    label.classList.remove('has-files');
+    labelText.textContent = input.multiple ? 'Select one or more files to upload' : 'Select a file to upload';
+    infoContainer.innerHTML = '';
+  } else {
+    // Files selected - update UI
+    label.classList.add('has-files');
+    labelText.textContent = files.length === 1 ? files[0].name : `${files.length} files selected`;
+    
+    // Show file details
+    infoContainer.innerHTML = Array.from(files).map((file, index) => `
+      <div class="file-input-filename">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <polyline points="13 2 13 9 20 9"/>
+          </svg>
+          <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">${file.name}</span>
+          <span style="color: var(--text-secondary); font-size: 12px;">${formatFileSize(file.size)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 }
 
 async function executeEndpointById(controllerName, endpointIndex) {
@@ -1003,14 +1203,18 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
 }
 
 function copyResponseToClipboard(button) {
-  const responseBody = button.nextElementSibling.textContent;
+  // Find the pre element - it's a sibling of the button container
+  const buttonContainer = button.parentElement;
+  const preElement = buttonContainer.nextElementSibling;
+  const responseBody = preElement ? preElement.textContent : '';
+  
   navigator.clipboard.writeText(responseBody).then(() => {
     button.innerHTML = "✓";
     setTimeout(() => {
       button.innerHTML = `
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
       `;
     }, 2000);

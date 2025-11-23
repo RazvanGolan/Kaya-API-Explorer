@@ -30,11 +30,13 @@ public class ApiParameter
 {
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
-    public string Source { get; set; } = string.Empty; // Query, Route, Body, Header
+    public string Source { get; set; } = string.Empty; // Query, Route, Body, Header, File, Form
     public bool Required { get; set; }
     public string Description { get; set; } = string.Empty;
     public object? DefaultValue { get; set; }
     public ApiSchema? Schema { get; set; } // For complex types
+    public bool IsFile { get; set; } // Indicates if this is a file upload parameter
+    public string? HeaderName { get; set; } // The actual header name when using [FromHeader(Name = "...")]
 }
 
 public class ApiRequestBody

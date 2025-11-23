@@ -933,6 +933,12 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
   transition: all 0.3s ease;
+  align-self: flex-start;
+  max-height: 24px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .response-body {
@@ -1391,4 +1397,96 @@ body {
 .btn.btn-sm {
   padding: 6px 12px;
   font-size: 13px;
+}
+
+/* Custom File Input Styling */
+.file-input-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+input[type="file"].file-input {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+}
+
+.file-input-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.file-input-label:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.file-input-label:active {
+  transform: scale(0.98);
+}
+
+.file-input-label svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+.file-input-label.has-files {
+  background: var(--accent-primary-light);
+  border-color: var(--accent-primary);
+  border-style: solid;
+  color: var(--accent-primary);
+}
+
+.file-input-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.file-input-filename {
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.file-input-filename svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-secondary);
+}
+
+.file-input-remove {
+  background: none;
+  border: none;
+  color: var(--error-text);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.file-input-remove:hover {
+  background: var(--error-bg);
 }
