@@ -13,10 +13,10 @@ public static class ServiceCollectionExtensions
     /// Adds Kaya API Explorer in middleware mode with the specified route prefix and theme
     /// </summary>
     /// <param name="services">The service collection</param>
-    /// <param name="routePrefix">The route prefix (default: "/api-explorer")</param>
-    /// <param name="defaultTheme">The default theme ("light" or "dark", default: "light")</param>
-    /// <returns>The service collection</returns>
-    public static IServiceCollection AddKayaApiExplorer(this IServiceCollection services, string routePrefix = "/api-explorer", string defaultTheme = "light")
+    /// <param name="routePrefix">The route prefix (default: "/kaya")</param>
+    /// <param name="defaultTheme">The default theme ("light" or "dark")</param>
+    /// <returns></returns>
+    public static IServiceCollection AddKayaApiExplorer(this IServiceCollection services, string routePrefix = "/kaya", string defaultTheme = "light")
     {
         return services.AddKayaApiExplorer(options =>
         {
@@ -57,7 +57,7 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseKayaApiExplorer(this IApplicationBuilder app)
     {
         var options = app.ApplicationServices.GetService<KayaApiExplorerOptions>();
-        var routePrefix = options?.Middleware.RoutePrefix ?? "/api-explorer";
+        var routePrefix = options?.Middleware.RoutePrefix ?? "/kaya";
         var result = app.UseMiddleware<ApiExplorerMiddleware>(routePrefix);
         
         if (options?.SignalRDebug.Enabled is true)

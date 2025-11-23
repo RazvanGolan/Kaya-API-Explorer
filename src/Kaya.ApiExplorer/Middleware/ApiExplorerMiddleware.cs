@@ -10,7 +10,7 @@ public class ApiExplorerMiddleware
     private readonly RequestDelegate _next;
     private readonly string _routePrefix;
 
-    public ApiExplorerMiddleware(RequestDelegate next, string routePrefix = "/api-explorer")
+    public ApiExplorerMiddleware(RequestDelegate next, string routePrefix = "/kaya")
     {
         _next = next;
         _routePrefix = routePrefix.TrimEnd('/');

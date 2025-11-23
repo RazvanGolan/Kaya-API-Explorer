@@ -505,10 +505,11 @@ function updateThemeButton() {
   }
 }
 
-
 async function loadApiData() {
   try {
-    const response = await fetch('api-explorer/api-docs');
+    const config = window.KayaApiExplorerConfig || {};
+    const routePrefix = config.routePrefix || '/kaya';
+    const response = await fetch(`${routePrefix}/api-docs`);
     const data = await response.json();
     console.log('API data loaded:', data);
     controllers = data.controllers || [];
@@ -713,7 +714,7 @@ function renderParameters(endpoint) {
                 <code class="parameter-name">${fileIcon}${param.name}</code>
                 <span class="badge">${param.type}</span>
                 ${requiredBadge}
-                ${isFileParam ? '<span class="badge" style="background: #8b5cf6;">File Upload</span>' : ''}
+                ${isFileParam ? '<span class="badge file-upload-badge">File Upload</span>' : ''}
             </div>
             <p class="parameter-description">${param.description || (isFileParam ? 'File to upload' : '')}</p>
         </div>

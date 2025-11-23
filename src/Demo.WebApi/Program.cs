@@ -36,14 +36,14 @@ builder.Services.AddAuthorization();
 // Add Kaya API Explorer with SignalR debugging enabled
 builder.Services.AddKayaApiExplorer(options =>
 {
-    options.Middleware.RoutePrefix = "/api-explorer";
+    options.Middleware.RoutePrefix = "/kaya";
     options.Middleware.DefaultTheme = "light";
     options.SignalRDebug.Enabled = true;
-    options.SignalRDebug.RoutePrefix = "/signalr-debug";
+    options.SignalRDebug.RoutePrefix = "/kaya-signalr";
 });
 
 // Alternative: Simple configuration (SignalR debug disabled by default)
-// builder.Services.AddKayaApiExplorer(routePrefix: "/api-docs", defaultTheme: "dark");
+// builder.Services.AddKayaApiExplorer(routePrefix: "/api-explorer", defaultTheme: "dark");
 
 var app = builder.Build();
 

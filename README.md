@@ -56,7 +56,7 @@ app.Run();
 
 ### 3. Access the UI
 
-Navigate to `http://localhost:5000/api-explorer` (or your app's URL) to view your API documentation.
+Navigate to `http://localhost:5000/kaya` (or your app's URL) to view your API documentation.
 
 ## Demo Project
 
@@ -69,7 +69,7 @@ cd src/Demo.WebApi
 dotnet run
 ```
 
-Then navigate to `http://localhost:5121/api-explorer` to see the API Explorer in action.
+Then navigate to `http://localhost:5121/kaya` to see the API Explorer in action.
 
 ## How It Works
 
@@ -99,11 +99,11 @@ You can customize Kaya API Explorer in several ways:
 ### Basic Configuration
 
 ```csharp
-// Use default settings (route: "/api-explorer", theme: "light")
+// Use default settings (route: "/kaya", theme: "light")
 builder.Services.AddKayaApiExplorer();
 
 // Customize route prefix and theme
-builder.Services.AddKayaApiExplorer(routePrefix: "/api-docs", defaultTheme: "dark");
+builder.Services.AddKayaApiExplorer(routePrefix: "/api-explorer", defaultTheme: "dark");
 ```
 
 ### Advanced Configuration with SignalR Debugging
@@ -117,7 +117,7 @@ builder.Services.AddSignalR(); // If using SignalR
 
 builder.Services.AddKayaApiExplorer(options =>
 {
-    options.Middleware.RoutePrefix = "/api-explorer";
+    options.Middleware.RoutePrefix = "/kaya";
     options.Middleware.DefaultTheme = "light";
     
     // Enable SignalR debugging (optional)

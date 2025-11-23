@@ -534,15 +534,6 @@
   color: var(--warning-text);
 }
 
-/* Content Area Override */
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 24px 32px;
-  min-width: 0;
-}
-
 .welcome-screen {
   display: flex;
   align-items: center;
@@ -568,7 +559,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .content-area {
+  .main-body {
     padding: 16px;
   }
 }

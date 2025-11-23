@@ -54,7 +54,7 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
             defaultTheme = "light";
         }
 
-        var apiExplorerRoute = options.Middleware.RoutePrefix ?? "/api-explorer";
+        var apiExplorerRoute = options.Middleware.RoutePrefix ?? "/kaya";
 
         return $@"
 <script>

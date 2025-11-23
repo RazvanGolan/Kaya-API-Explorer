@@ -11,7 +11,7 @@ public class SignalRDebugMiddleware
     private readonly RequestDelegate _next;
     private readonly string _routePrefix;
 
-    public SignalRDebugMiddleware(RequestDelegate next, string routePrefix = "/signalr-debug")
+    public SignalRDebugMiddleware(RequestDelegate next, string routePrefix = "/kaya-signalr")
     {
         _next = next;
         _routePrefix = routePrefix.TrimEnd('/');
