@@ -29,8 +29,8 @@ public static class AttributeHelper
             return (false, []);
         }
 
-        var authorizeAttr = member.GetCustomAttribute<AuthorizeAttribute>();
-        if (authorizeAttr is not null)
+        var authorizeAttrs = member.GetCustomAttributes<AuthorizeAttribute>();
+        foreach (var authorizeAttr in authorizeAttrs)
         {
             requiresAuth = true;
             if (!string.IsNullOrEmpty(authorizeAttr.Roles))
@@ -42,8 +42,8 @@ public static class AttributeHelper
 
         if (!requiresAuth && fallbackType is not null)
         {
-            var controllerAuthorize = fallbackType.GetCustomAttribute<AuthorizeAttribute>();
-            if (controllerAuthorize is not null)
+            var controllerAuthorizeAttrs = fallbackType.GetCustomAttributes<AuthorizeAttribute>();
+            foreach (var controllerAuthorize in controllerAuthorizeAttrs)
             {
                 requiresAuth = true;
                 if (!string.IsNullOrEmpty(controllerAuthorize.Roles))

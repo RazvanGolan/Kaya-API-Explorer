@@ -204,8 +204,10 @@ public static class ReflectionHelper
     }
 
     // TODO: see if this can be enhanced
-    private static string GenerateExampleFromSchema(Type type, Dictionary<string, ApiSchema> schemas)
+    private static string GenerateExampleFromSchema(Type type, Dictionary<string, ApiSchema> schemas, HashSet<Type>? processedTypes = null)
     {
+        processedTypes ??= [];
+
         var example = new Dictionary<string, object>();
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.CanRead && p.CanWrite);
@@ -259,8 +261,8 @@ public static class ReflectionHelper
                     var keyType = underlyingType.GetGenericArguments()[0];
                     var valueType = underlyingType.GetGenericArguments()[1];
                     
-                    var keyExample = GenerateSimpleExample(keyType);
-                    var valueExample = GenerateSimpleExample(valueType);
+                    var keyExample = GenerateSimpleExample(keyType, processedTypes);
+                    var valueExample = GenerateSimpleExample(valueType, processedTypes);
                     
                     var dictionaryExample = new Dictionary<string, object>();
                     var keyString = keyExample?.ToString() ?? "key";
@@ -273,7 +275,7 @@ public static class ReflectionHelper
                     var elementType = underlyingType.GetGenericArguments().FirstOrDefault();
                     if (elementType != null)
                     {
-                        var elementExample = GenerateSimpleExample(elementType);
+                        var elementExample = GenerateSimpleExample(elementType, processedTypes);
                         example[property.Name] = new[] { elementExample };
                     }
                     else
@@ -284,30 +286,44 @@ public static class ReflectionHelper
                 // Handle other generic types (like ApiResponse<T>, etc.)
                 else
                 {
-                    try
+                    if (processedTypes.Contains(underlyingType))
                     {
-                        var nestedExample = GenerateExampleFromSchema(underlyingType, schemas);
-                        var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
-                        example[property.Name] = parsedExample ?? "{}";
+                        example[property.Name] = new { };
                     }
-                    catch
+                    else
                     {
-                        example[property.Name] = "{}";
+                        try
+                        {
+                            var nestedExample = GenerateExampleFromSchema(underlyingType, schemas, processedTypes);
+                            var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                            example[property.Name] = parsedExample ?? new { };
+                        }
+                        catch
+                        {
+                            example[property.Name] = new { };
+                        }
                     }
                 }
             }
             else if (IsComplexType(underlyingType))
             {
-                // For complex nested objects, generate a nested example
-                var nestedExample = GenerateExampleFromSchema(underlyingType, schemas);
-                try
+                if (processedTypes.Contains(underlyingType))
                 {
-                    var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
-                    example[property.Name] = parsedExample ?? "{}";
+                    example[property.Name] = new { };
                 }
-                catch
+                else
                 {
-                    example[property.Name] = "{}";
+                    // For complex nested objects, generate a nested example
+                    var nestedExample = GenerateExampleFromSchema(underlyingType, schemas, processedTypes);
+                    try
+                    {
+                        var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                        example[property.Name] = parsedExample ?? new { };
+                    }
+                    catch
+                    {
+                        example[property.Name] = new { };
+                    }
                 }
             }
             else
@@ -323,10 +339,16 @@ public static class ReflectionHelper
         });
     }
 
-    private static object GenerateSimpleExample(Type type)
+    private static object GenerateSimpleExample(Type type, HashSet<Type>? processedTypes = null)
     {
+        processedTypes ??= [];
         var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
-        
+
+        if (processedTypes.Contains(underlyingType))
+        {
+            return new { };
+        }
+
         if (underlyingType == typeof(string)) return "sample text";
         if (underlyingType == typeof(int) || underlyingType == typeof(long)) return 123;
         if (underlyingType == typeof(bool)) return true;
@@ -341,25 +363,28 @@ public static class ReflectionHelper
             var enumValues = Enum.GetValues(underlyingType);
             return enumValues.GetValue(0) ?? 0;
         }
-        
+
+        var nestedProcessedTypes = new HashSet<Type>(processedTypes) { underlyingType };
+
         // Handle arrays and collections
         if (IsEnumerableType(underlyingType))
         {
             var elementType = underlyingType.GetGenericArguments().FirstOrDefault();
             if (elementType != null)
             {
-                var elementExample = GenerateSimpleExample(elementType);
+                var elementExample = GenerateSimpleExample(elementType, nestedProcessedTypes);
                 return new[] { elementExample };
             }
             return Array.Empty<object>();
         }
-        
-        if (underlyingType.IsGenericType)
+
+        // Handle complex types (both generic and non-generic)
+        if (IsComplexType(underlyingType) || underlyingType.IsGenericType)
         {
             var schemas = new Dictionary<string, ApiSchema>();
             try
             {
-                var exampleJson = GenerateExampleFromSchema(underlyingType, schemas);
+                var exampleJson = GenerateExampleFromSchema(underlyingType, schemas, nestedProcessedTypes);
                 return System.Text.Json.JsonSerializer.Deserialize<object>(exampleJson) ?? new { };
             }
             catch
