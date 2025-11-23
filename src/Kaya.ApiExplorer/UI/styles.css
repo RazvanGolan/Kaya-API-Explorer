@@ -547,6 +547,7 @@ body {
 }
 
 .code-block {
+  display: flex;
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
   padding: 16px;
@@ -568,10 +569,15 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 4px;
   color: var(--text-secondary);
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
 }
 
 .copy-btn:hover {
@@ -579,19 +585,34 @@ body {
   color: var(--text-primary);
 }
 
+.copy-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
 .save-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 4px;
   color: var(--text-secondary);
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
 }
 
 .save-btn:hover {
   background-color: var(--border-primary);
   color: var(--text-primary);
+}
+
+.save-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .response-item {

@@ -648,13 +648,13 @@ function renderRequest(endpoint) {
             <div class="code-block">
                 <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
                     <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                     </button>
                     <button class="copy-btn save-btn" onclick="saveToFile(this, 'request-body')" title="Save to file">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                             <polyline points="17,21 17,13 7,13 7,21"></polyline>
                             <polyline points="7,3 7,8 15,8"></polyline>
@@ -683,13 +683,13 @@ function renderResponses(endpoint) {
       <div class="code-block">
         <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
           <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
           </button>
           <button class="copy-btn save-btn" onclick="saveToFile(this, 'response-body')" title="Save to file">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17,21 17,13 7,13 7,21"></polyline>
               <polyline points="7,3 7,8 15,8"></polyline>
@@ -963,7 +963,7 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
           <div style="position: relative;">
             <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
               <button class="copy-btn" onclick="copyResponseToClipboard(this)" title="Copy to clipboard">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
@@ -976,7 +976,7 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
                         methodName: endpoint.methodName
                       })}' 
                       title="Save to file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                   <polyline points="17,21 17,13 7,13 7,21"></polyline>
                   <polyline points="7,3 7,8 15,8"></polyline>
@@ -1267,13 +1267,13 @@ async function sendRequest() {
                         <div style="position: relative;">
                             <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
                                 <button class="copy-btn" onclick="copyToClipboard(this)" title="Copy to clipboard">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                     </svg>
                                 </button>
                                 <button class="copy-btn save-btn" onclick="saveToFile(this, 'request-builder-response')" title="Save to file">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                                         <polyline points="17,21 17,13 7,13 7,21"></polyline>
                                         <polyline points="7,3 7,8 15,8"></polyline>
