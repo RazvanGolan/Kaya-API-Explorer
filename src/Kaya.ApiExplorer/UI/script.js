@@ -411,12 +411,12 @@ function updateThemeButton() {
   const themeText = themeBtn.querySelector('.theme-text')
   
   if (currentTheme === 'dark') {
-    sunIcon.style.display = 'none'
-    moonIcon.style.display = 'block'
-    themeText.textContent = 'Light'
-  } else {
     sunIcon.style.display = 'block'
     moonIcon.style.display = 'none'
+    themeText.textContent = 'Light'
+  } else {
+    sunIcon.style.display = 'none'
+    moonIcon.style.display = 'block'
     themeText.textContent = 'Dark'
   }
 }

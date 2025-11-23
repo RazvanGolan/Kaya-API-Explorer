@@ -35,12 +35,12 @@ function updateThemeIcons() {
     const themeText = document.querySelector('.theme-text');
     
     if (currentTheme === 'dark') {
-        if (sunIcon) sunIcon.style.display = 'none';
-        if (moonIcon) moonIcon.style.display = 'block';
-        if (themeText) themeText.textContent = 'Light';
-    } else {
         if (sunIcon) sunIcon.style.display = 'block';
         if (moonIcon) moonIcon.style.display = 'none';
+        if (themeText) themeText.textContent = 'Light';
+    } else {
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'block';
         if (themeText) themeText.textContent = 'Dark';
     }
 }
