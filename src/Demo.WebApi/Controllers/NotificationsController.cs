@@ -13,13 +13,7 @@ public class NotificationsController : ControllerBase
     /// <summary>
     /// Gets notifications with advanced filtering using complex query parameters
     /// </summary>
-    /// <param name="userId">Filter by user ID</param>
-    /// <param name="types">Filter by notification types (can specify multiple)</param>
-    /// <param name="priorities">Filter by priorities (can specify multiple)</param>
-    /// <param name="isRead">Filter by read status</param>
-    /// <param name="dateRange">Date range for filtering</param>
-    /// <param name="search">Search in title and message</param>
-    /// <param name="pagination">Pagination and sorting options</param>
+    /// <param name="request">Notification search request with multiple filters</param>
     /// <returns>Filtered and paginated notifications</returns>
     [HttpPost("search")]
     public ActionResult<ApiResponse<List<Notification>>> SearchNotifications([FromBody] NotificationSearchRequest request)

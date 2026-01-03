@@ -95,6 +95,7 @@ function saveAuthConfiguration(storageKey = 'kayaAuthConfig', modalId = 'authMod
       break
   }
   
+  // TODO: Consider adding a timestamp to delete the config after a certain period for security
   localStorage.setItem(storageKey, JSON.stringify(authConfig))
   
   updateAuthStatus()

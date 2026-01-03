@@ -4,20 +4,13 @@ A lightweight, Swagger-like API documentation tool for .NET applications that au
 
 ## Features
 
-- 🚀 **Automatic Endpoint Discovery**: Scans your controllers and actions automatically
-- 🎨 **Beautiful UI**: Clean, modern interface with embedded HTML/CSS/JS
-- 📊 **Detailed Information**: Shows parameters, response types, HTTP methods, and more
-- ⚡ **Performance Monitoring**: Real-time request duration and data size tracking with color-coded indicators
-- 🔧 **Easy Integration**: Just add a few lines to your startup
-- 📦 **NuGet Package**: Simple installation via NuGet
-- 🎨 **Clean Middleware**: Integrates seamlessly into your ASP.NET Core pipeline
-- 🔐 **Authentication Support**: Multiple authentication methods (Bearer Token, API Key, OAuth 2.0)
-- ⚡ **Try It Out**: Execute API requests directly from the UI with real-time responses
-- 💾 **Export & Download**: Export request/response data and generate code snippets for multiple programming languages
-- 📱 **Request Builder**: Build and test custom HTTP requests with headers, parameters, and body
-- 🔍 **Advanced Search**: Search and filter endpoints by path, method, name, or description
-- 🌙 **Theme Support**: Toggle between light and dark modes for better user experience
-- 🔌 **SignalR Debug Tool**: Interactive real-time hub testing and debugging - connect to hubs, invoke methods, register event handlers, and receive incoming messages
+- **Automatic Discovery** - Scans controllers and endpoints using reflection
+- **Interactive UI** - Test endpoints directly from the browser with real-time responses
+- **Authentication** - Support for Bearer tokens, API keys, and OAuth 2.0
+- **SignalR Debugging** - Real-time hub testing with method invocation and event monitoring
+- **XML Documentation** - Automatically reads and displays your code comments
+- **Code Export** - Generate request snippets in multiple programming languages
+- **Performance Metrics** - Track request duration and response size
 
 ## Quick Start
 
@@ -146,6 +139,18 @@ The SignalR Debug Tool provides:
 - **Real-time Logging**: Monitor all hub activity including connections, method calls, and incoming events
 - **Interactive Testing**: Test your SignalR implementation without writing client code
 
+### XML Documentation Support
+
+Kaya API Explorer automatically reads XML documentation comments from your code to provide better descriptions in the UI. To enable this feature, add the following to your project file (`.csproj`):
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+If XML documentation is not available, the explorer falls back to generating default descriptions.
+
 ### Embedded UI Architecture
 
 The UI is built with embedded HTML, CSS, and JavaScript files that are compiled into the assembly. This ensures:
@@ -158,9 +163,3 @@ The middleware integrates seamlessly into your ASP.NET Core pipeline, serving th
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-### Future Features
-
-- [ ] Support for XML documentation comments
-- [ ] Add gRPC debug support
-- [ ] Add GraphQL support

@@ -4,6 +4,9 @@ using Demo.WebApi.Models;
 
 namespace Demo.WebApi.Controllers;
 
+/// <summary>
+/// Product catalog and inventory management
+/// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase

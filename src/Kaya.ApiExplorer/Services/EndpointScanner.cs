@@ -60,7 +60,7 @@ public class EndpointScanner : IEndpointScanner
             var controller = new ApiController
             {
                 Name = group.Key,
-                Description = GetControllerDescription(group.Key),
+                Description = controllerType is not null ? GetControllerDescription(controllerType) : GetControllerDescription(group.Key),
                 Endpoints = group.Value,
                 RequiresAuthorization = requiresAuth,
                 Roles = roles,
@@ -122,10 +122,20 @@ public class EndpointScanner : IEndpointScanner
         return endpoints;
     }
 
-    // TODO: Enhance this to read XML documentation comments if available
     private static string GetControllerDescription(string controllerName)
     {
-        // Simple description generation - could be enhanced with XML documentation
+        return $"{controllerName.Replace("Controller", "")} management";
+    }
+
+    private static string GetControllerDescription(Type controllerType)
+    {
+        var xmlSummary = XmlDocumentationHelper.GetTypeSummary(controllerType);
+        if (!string.IsNullOrWhiteSpace(xmlSummary))
+        {
+            return xmlSummary;
+        }
+
+        var controllerName = controllerType.Name;
         return controllerName switch
         {
             "UsersController" => "Manage user accounts and profiles",
@@ -248,11 +258,10 @@ public class EndpointScanner : IEndpointScanner
         return httpAttributes;
     }
     
-    // TODO: Enhance this to read XML documentation comments if available
     private static string GetMethodDescription(MethodInfo method)
     {
-        // Could be enhanced to read XML documentation comments
-        return $"{method.Name} action in {method.DeclaringType?.Name}";
+        var xmlSummary = XmlDocumentationHelper.GetMethodSummary(method);
+        return !string.IsNullOrWhiteSpace(xmlSummary) ? xmlSummary : $"{method.Name} action in {method.DeclaringType?.Name}";
     }
 
     private static bool IsFileParameter(Type parameterType)

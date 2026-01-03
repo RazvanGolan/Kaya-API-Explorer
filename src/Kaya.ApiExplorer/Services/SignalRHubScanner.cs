@@ -282,9 +282,14 @@ public class SignalRHubScanner : ISignalRHubScanner
         return $"/{char.ToLowerInvariant(hubName[0])}{hubName[1..]}";
     }
 
-    // TODO: Enhance to read XML documentation comments
     private static string GetHubDescription(Type hubType)
     {
+        var xmlSummary = XmlDocumentationHelper.GetTypeSummary(hubType);
+        if (!string.IsNullOrWhiteSpace(xmlSummary))
+        {
+            return xmlSummary;
+        }
+
         var hubName = hubType.Name;
         if (hubName.EndsWith("Hub"))
         {
@@ -294,9 +299,14 @@ public class SignalRHubScanner : ISignalRHubScanner
         return $"{hubName} SignalR hub for real-time communication";
     }
 
-    // TODO: Enhance to read XML documentation comments
     private static string GetMethodDescription(MethodInfo method)
     {
+        var xmlSummary = XmlDocumentationHelper.GetMethodSummary(method);
+        if (!string.IsNullOrWhiteSpace(xmlSummary))
+        {
+            return xmlSummary;
+        }
+
         return $"Invoke {method.Name} method on hub";
     }
 }
