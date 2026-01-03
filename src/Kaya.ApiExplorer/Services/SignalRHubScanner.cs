@@ -1,7 +1,9 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
 using Kaya.ApiExplorer.Models;
 using Kaya.ApiExplorer.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kaya.ApiExplorer.Services;
 
@@ -21,6 +23,9 @@ public class SignalRHubScanner : ISignalRHubScanner
             Description = "Available SignalR hubs and their methods"
         };
 
+        // Get the actual hub routes from endpoint routing
+        var hubRoutes = GetHubRoutes(serviceProvider);
+
         var assemblies = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic && !ReflectionHelper.IsSystemAssembly(a));
 
@@ -33,7 +38,7 @@ public class SignalRHubScanner : ISignalRHubScanner
 
                 foreach (var hubType in hubTypes)
                 {
-                    var hub = ScanHub(hubType);
+                    var hub = ScanHub(hubType, hubRoutes);
                     if (hub is not null)
                     {
                         documentation.Hubs.Add(hub);
@@ -43,11 +48,43 @@ public class SignalRHubScanner : ISignalRHubScanner
             catch (ReflectionTypeLoadException)
             {
                 // Skip assemblies that fail to load
-                continue;
             }
         }
 
         return documentation;
+    }
+    
+    private static Dictionary<Type, string> GetHubRoutes(IServiceProvider serviceProvider)
+    {
+        var hubRoutes = new Dictionary<Type, string>();
+        
+        try
+        {
+            // Try to get the endpoint data source from the service provider
+            var endpointDataSources = serviceProvider.GetServices<EndpointDataSource>();
+
+            foreach (var dataSource in endpointDataSources)
+            {
+                foreach (var endpoint in dataSource.Endpoints)
+                {
+                    // Check if this is a hub endpoint
+                    var hubMetadata = endpoint.Metadata.GetMetadata<Microsoft.AspNetCore.SignalR.HubMetadata>();
+                    if (hubMetadata is null) 
+                        continue;
+                    
+                    if (endpoint is RouteEndpoint routeEndpoint)
+                    {
+                        hubRoutes[hubMetadata.HubType] = routeEndpoint.RoutePattern.RawText ?? GetHubPathFromType(hubMetadata.HubType);
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If we can't get the routes, we'll fall back to the default naming
+        }
+
+        return hubRoutes;
     }
 
     private static bool IsHubType(Type type)
@@ -71,7 +108,7 @@ public class SignalRHubScanner : ISignalRHubScanner
         return false;
     }
 
-    private static SignalRHub? ScanHub(Type hubType)
+    private static SignalRHub? ScanHub(Type hubType, Dictionary<Type, string> hubRoutes)
     {
         var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(hubType);
         var (isObsolete, obsoleteMessage) = AttributeHelper.GetObsoleteInfo(hubType);
@@ -87,11 +124,16 @@ public class SignalRHubScanner : ISignalRHubScanner
             }
         }
 
+        // Get the actual route from the registered endpoints, or fall back to convention
+        var hubPath = hubRoutes.TryGetValue(hubType, out var registeredPath) 
+            ? registeredPath 
+            : GetHubPathFromType(hubType);
+
         var hub = new SignalRHub
         {
             Name = hubType.Name,
             Namespace = hubType.Namespace ?? string.Empty,
-            Path = GetHubPath(hubType),
+            Path = hubPath,
             Description = GetHubDescription(hubType),
             RequiresAuthorization = requiresAuth,
             Roles = roles,
@@ -108,10 +150,7 @@ public class SignalRHubScanner : ISignalRHubScanner
         foreach (var method in methods)
         {
             var hubMethod = ScanHubMethod(method, hubType);
-            if (hubMethod is not null)
-            {
-                hub.Methods.Add(hubMethod);
-            }
+            hub.Methods.Add(hubMethod);
         }
 
         return hub.Methods.Count > 0 ? hub : null;
@@ -134,7 +173,7 @@ public class SignalRHubScanner : ISignalRHubScanner
         return inheritedMethods.Contains(method.Name);
     }
 
-    private static SignalRMethod? ScanHubMethod(MethodInfo method, Type hubType)
+    private static SignalRMethod ScanHubMethod(MethodInfo method, Type hubType)
     {
         var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, hubType);
         var (isObsolete, obsoleteMessage) = AttributeHelper.GetObsoleteInfo(method);
@@ -197,16 +236,13 @@ public class SignalRHubScanner : ISignalRHubScanner
         foreach (var param in method.GetParameters())
         {
             var parameter = ScanParameter(param);
-            if (parameter is not null)
-            {
-                hubMethod.Parameters.Add(parameter);
-            }
+            hubMethod.Parameters.Add(parameter);
         }
 
         return hubMethod;
     }
 
-    private static SignalRParameter? ScanParameter(ParameterInfo param)
+    private static SignalRParameter ScanParameter(ParameterInfo param)
     {
         var paramType = param.ParameterType;
         var typeName = ReflectionHelper.GetFriendlyTypeName(paramType);
@@ -233,9 +269,9 @@ public class SignalRHubScanner : ISignalRHubScanner
         return parameter;
     }
 
-    private static string GetHubPath(Type hubType)
+    private static string GetHubPathFromType(Type hubType)
     {
-        // SignalR hubs typically use the hub name without "Hub" suffix
+        // Fallback: SignalR hubs typically use the hub name without "Hub" suffix
         var hubName = hubType.Name;
         if (hubName.EndsWith("Hub"))
         {

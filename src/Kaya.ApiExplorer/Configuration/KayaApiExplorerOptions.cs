@@ -14,6 +14,6 @@ public class MiddlewareOptions
 
 public class SignalRDebugOptions
 {
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; }
     public string RoutePrefix { get; set; } = "/kaya-signalr";
 }

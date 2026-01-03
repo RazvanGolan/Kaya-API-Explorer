@@ -59,7 +59,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Map SignalR hubs
-app.MapHub<NotificationHub>("/notification");
+app.MapHub<NotificationHub>("/hubs/notification");
 app.MapHub<ChatHub>("/chat");
 app.MapHub<StockTickerHub>("/stockticker");
 

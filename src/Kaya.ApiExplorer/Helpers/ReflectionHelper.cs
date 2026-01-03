@@ -265,7 +265,7 @@ public static class ReflectionHelper
                     var valueExample = GenerateSimpleExample(valueType, processedTypes);
                     
                     var dictionaryExample = new Dictionary<string, object>();
-                    var keyString = keyExample?.ToString() ?? "key";
+                    var keyString = keyExample.ToString() ?? "key";
                     dictionaryExample[keyString] = valueExample;
                     
                     example[property.Name] = dictionaryExample;

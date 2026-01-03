@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Kaya.ApiExplorer.Models;
@@ -24,7 +23,7 @@ public class EndpointScanner : IEndpointScanner
         };
 
         var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => !a.IsDynamic && !ReflectionHelper.IsSystemAssembly(a));
+            .Where(a => !a.IsDynamic && !ReflectionHelper.IsSystemAssembly(a)).ToList();
 
         var controllerGroups = new Dictionary<string, List<ApiEndpoint>>();
 
@@ -36,15 +35,16 @@ public class EndpointScanner : IEndpointScanner
             foreach (var controllerType in controllerTypes)
             {
                 var endpoints = ScanController(controllerType);
-                if (endpoints.Count > 0)
+                if (endpoints.Count <= 0) 
+                    continue;
+                
+                var controllerName = controllerType.Name;
+                if (!controllerGroups.TryGetValue(controllerName, out _))
                 {
-                    var controllerName = controllerType.Name;
-                    if (!controllerGroups.ContainsKey(controllerName))
-                    {
-                        controllerGroups[controllerName] = [];
-                    }
-                    controllerGroups[controllerName].AddRange(endpoints);
+                    controllerGroups[controllerName] = [];
                 }
+                
+                controllerGroups[controllerName].AddRange(endpoints);
             }
         }
 

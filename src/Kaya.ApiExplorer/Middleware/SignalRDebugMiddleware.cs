@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Kaya.ApiExplorer.Services;
-using Kaya.ApiExplorer.Configuration;
 
 namespace Kaya.ApiExplorer.Middleware;
 

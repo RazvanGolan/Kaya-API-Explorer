@@ -47,14 +47,14 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
 
     private string GenerateThemeScript()
     {
-        var defaultTheme = options.Middleware.DefaultTheme?.ToLower() ?? "light";
+        var defaultTheme = options.Middleware.DefaultTheme.ToLower();
         
         if (defaultTheme != "light" && defaultTheme != "dark")
         {
             defaultTheme = "light";
         }
 
-        var apiExplorerRoute = options.Middleware.RoutePrefix ?? "/kaya";
+        var apiExplorerRoute = options.Middleware.RoutePrefix;
 
         return $@"
 <script>
@@ -69,7 +69,7 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
     private static async Task<string> ReadEmbeddedResourceAsync(Assembly assembly, string resourceName)
     {
         var fullResourceName = $"Kaya.ApiExplorer.{resourceName}";
-        using var stream = assembly.GetManifestResourceStream(fullResourceName) 
+        await using var stream = assembly.GetManifestResourceStream(fullResourceName) 
             ?? throw new InvalidOperationException($"Embedded resource '{fullResourceName}' not found.");
         using var reader = new StreamReader(stream);
         return await reader.ReadToEndAsync();
