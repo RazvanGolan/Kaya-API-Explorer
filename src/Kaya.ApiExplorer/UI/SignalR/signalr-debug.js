@@ -2,14 +2,22 @@
 let hubsData = [];
 let currentHub = null;
 let connections = new Map(); // hubName -> connection
-let registeredHandlers = new Map(); // hubName -> Set of handler names
+let registeredHandlers = new Map(); // hubName -> Map of { eventName -> handler function }
 let logs = [];
+
+// Storage keys
+const STORAGE_KEYS = {
+    CONNECTIONS: 'kayaSignalR_connections',
+    HANDLERS: 'kayaSignalR_handlers'
+};
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
     setupEventListeners();
     loadHubs();
+    // After hubs are loaded, restore connections
+    setTimeout(() => restoreConnectionsFromStorage(), 500);
 });
 
 // Theme Management
@@ -390,63 +398,77 @@ function closeConnectionModal() {
     document.getElementById('connectionModal').style.display = 'none';
 }
 
+// Helper function to create and setup a hub connection
+async function createHubConnection(hub, hubUrl) {
+    const accessToken = getAccessToken();
+    
+    const connectionOptions = {};
+    
+    // Add access token if available
+    if (accessToken) {
+        connectionOptions.accessTokenFactory = () => accessToken;
+    }
+    
+    // Add custom headers (for API key auth)
+    const customHeaders = {};
+    if (authConfig.type === 'apikey' && authConfig.apikey.value) {
+        customHeaders[authConfig.apikey.name] = authConfig.apikey.value;
+    }
+    
+    if (Object.keys(customHeaders).length > 0) {
+        connectionOptions.headers = customHeaders;
+    }
+    
+    const connectionBuilder = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl, connectionOptions)
+        .withAutomaticReconnect()
+        .configureLogging(signalR.LogLevel.Information);
+    
+    const connection = connectionBuilder.build();
+    
+    // Setup event handlers
+    connection.onreconnecting(_ => {
+        addLog('warning', `${hub.name}: Connection lost. Reconnecting...`);
+    });
+    
+    connection.onreconnected(_ => {
+        addLog('success', `${hub.name}: Reconnected successfully`);
+    });
+    
+    connection.onclose(error => {
+        addLog('error', `${hub.name}: Connection closed: ${error || 'Unknown reason'}`);
+        connections.delete(hub.name);
+        registeredHandlers.delete(hub.name);
+        saveConnectionsToStorage();
+        saveHandlersToStorage();
+        updateHubsList();
+        updateEventHandlersUI();
+        if (currentHub && currentHub.name === hub.name) {
+            renderHubDetails();
+        }
+    });
+    
+    await connection.start();
+    connections.set(hub.name, connection);
+    
+    return connection;
+}
+
 // Connect to hub
 async function connectToHub() {
     const hubUrl = document.getElementById('hubUrl').value;
-    const accessToken = getAccessToken();
     
     console.log('Connecting to hub at:', hubUrl);
     try {
         addLog('info', `Connecting to ${currentHub.name}...`);
         
-        const connectionOptions = {};
-        
-        // Add access token if available
-        if (accessToken) {
-            connectionOptions.accessTokenFactory = () => accessToken;
-        }
-        
-        // Add custom headers (for API key auth)
-        const customHeaders = {};
-        if (authConfig.type === 'apikey' && authConfig.apikey.value) {
-            customHeaders[authConfig.apikey.name] = authConfig.apikey.value;
-        }
-        
-        if (Object.keys(customHeaders).length > 0) {
-            connectionOptions.headers = customHeaders;
-        }
-        
-        const connectionBuilder = new signalR.HubConnectionBuilder()
-            .withUrl(hubUrl, connectionOptions)
-            .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Information);
-        
-        const connection = connectionBuilder.build();
-        
-        // Setup event handlers
-        connection.onreconnecting(_ => {
-            addLog('warning', `Connection lost. Reconnecting...`);
-        });
-        
-        connection.onreconnected(_ => {
-            addLog('success', `Reconnected successfully`);
-        });
-        
-        connection.onclose(error => {
-            addLog('error', `Connection closed: ${error || 'Unknown reason'}`);
-            connections.delete(currentHub.name);
-            registeredHandlers.delete(currentHub.name);
-            updateHubsList();
-            renderHubDetails();
-        });
-        
-        await connection.start();
-        
-        connections.set(currentHub.name, connection);
+        await createHubConnection(currentHub, hubUrl);
         
         addLog('success', `Connected to ${currentHub.name} successfully`);
+        saveConnectionsToStorage();
         closeConnectionModal();
         updateHubsList();
+        updateEventHandlersUI();
         renderHubDetails();
     } catch (error) {
         console.error('Connection failed:', error);
@@ -463,7 +485,10 @@ async function disconnectHub() {
     try {
         await connection.stop();
         connections.delete(currentHub.name);
-        registeredHandlers.delete(currentHub.name);
+        saveConnectionsToStorage();
+        saveHandlersToStorage();
+        updateHubsList();
+        updateEventHandlersUI.delete(currentHub.name);
         addLog('info', `Disconnected from ${currentHub.name}`);
         updateHubsList();
         renderHubDetails();
@@ -538,24 +563,31 @@ function registerEventHandler() {
     }
     
     // Check if handler is already registered
-    const handlers = registeredHandlers.get(currentHub.name) || new Set();
+    const handlers = registeredHandlers.get(currentHub.name) || new Map();
     if (handlers.has(eventName)) {
         alert(`Handler for "${eventName}" is already registered`);
         return;
     }
     
     try {
-        // Register the event handler
-        connection.on(eventName, (...args) => {
+        // Create the event handler
+        const handler = (...args) => {
             const data = args.length === 1 ? args[0] : args;
-            addLog('incoming', `📨 ${eventName} received`, data);
-        });
+            addLog('incoming', `📨 [${currentHub.name}] ${eventName} received`, data);
+        };
         
-        // Track the registered handler
-        handlers.add(eventName);
-        registeredHandlers.set(currentHub.name, handlers);
+        // Register the event handler
+        connection.on(eventName, handler);
+        
+        // Track the registered handler with the actual function reference
+        if (!registeredHandlers.has(currentHub.name)) {
+            registeredHandlers.set(currentHub.name, new Map());
+        }
+        registeredHandlers.get(currentHub.name).set(eventName, handler);
         
         addLog('success', `✓ Registered event handler for "${eventName}"`);
+        saveHandlersToStorage();
+        updateEventHandlersUI();
         closeEventHandlerModal();
     } catch (error) {
         console.error('Failed to register handler:', error);
@@ -730,6 +762,17 @@ function escapeHtml(text) {
     return String(text).replace(/[&<>"']/g, m => map[m]);
 }
 
+function escapeJsString(text) {
+    return String(text)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\"')
+        .replace(/`/g, '\\`')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t');
+}
+
 function showError(message) {
     const hubsList = document.getElementById('hubsList');
     if (hubsList) {
@@ -741,5 +784,198 @@ function showError(message) {
                 </div>
             </div>
         `;
+    }
+}
+
+function saveConnectionsToStorage() {
+    const connectionsData = [];
+    connections.forEach((connection, hubName) => {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            const hub = hubsData.find(h => h.name === hubName);
+            if (hub) {
+                connectionsData.push({
+                    hubName: hubName,
+                    hubPath: hub.path
+                });
+            }
+        }
+    });
+    localStorage.setItem(STORAGE_KEYS.CONNECTIONS, JSON.stringify(connectionsData));
+}
+
+function saveHandlersToStorage() {
+    const handlersData = [];
+    registeredHandlers.forEach((handlers, hubName) => {
+        handlers.forEach((handlerFunc, eventName) => {
+            handlersData.push({
+                hubName: hubName,
+                eventName: eventName
+            });
+        });
+    });
+    localStorage.setItem(STORAGE_KEYS.HANDLERS, JSON.stringify(handlersData));
+}
+
+async function restoreConnectionsFromStorage() {
+    try {
+        const connectionsJSON = localStorage.getItem(STORAGE_KEYS.CONNECTIONS);
+        const handlersJSON = localStorage.getItem(STORAGE_KEYS.HANDLERS);
+        
+        if (!connectionsJSON) return;
+        
+        const connectionsData = JSON.parse(connectionsJSON);
+        const handlersData = handlersJSON ? JSON.parse(handlersJSON) : [];
+        
+        for (const connData of connectionsData) {
+            const hub = hubsData.find(h => h.name === connData.hubName);
+            if (!hub) continue;
+            
+            try {
+                const baseUrl = window.location.origin;
+                const hubUrl = `${baseUrl}${hub.path}`;
+                
+                const connection = await createHubConnection(hub, hubUrl);
+                addLog('success', `Restored connection to ${hub.name}`);
+                
+                // Restore event handlers for this hub
+                const hubHandlers = handlersData.filter(h => h.hubName === hub.name);
+                for (const handlerData of hubHandlers) {
+                    registerEventHandlerProgrammatically(hub.name, handlerData.eventName, connection);
+                }
+            } catch (error) {
+                console.error(`Failed to restore connection to ${hub.name}:`, error);
+                addLog('error', `Failed to restore connection to ${hub.name}: ${error.message}`);
+            }
+        }
+        
+        updateHubsList();
+        updateEventHandlersUI();
+        if (currentHub) {
+            renderHubDetails();
+        }
+    } catch (error) {
+        console.error('Failed to restore connections:', error);
+    }
+}
+
+function registerEventHandlerProgrammatically(hubName, eventName, connection) {
+    if (!connection) return;
+    
+    const handler = (...args) => {
+        const data = args.length === 1 ? args[0] : args;
+        addLog('incoming', `📨 [${hubName}] ${eventName} received`, data);
+    };
+    
+    connection.on(eventName, handler);
+    
+    // Track the registered handler with the actual function reference
+    if (!registeredHandlers.has(hubName)) {
+        registeredHandlers.set(hubName, new Map());
+    }
+    registeredHandlers.get(hubName).set(eventName, handler);
+
+    addLog('success', `✓ Restored event handler for "${eventName}" on ${hubName}`);
+}
+
+function toggleEventHandlersPanel() {
+    const panel = document.getElementById('eventHandlersPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        updateEventHandlersUI();
+    } else {
+        panel.style.display = 'none';
+    }
+}
+
+function updateEventHandlersUI() {
+    const listContainer = document.getElementById('eventHandlersList');
+    const countBadge = document.getElementById('handlerCount');
+    
+    let totalHandlers = 0;
+    const handlersHTML = [];
+    
+    registeredHandlers.forEach((handlers, hubName) => {
+        if (handlers.size > 0) {
+            totalHandlers += handlers.size;
+            handlersHTML.push(`
+                <div class="handler-hub-group">
+                    <div class="handler-hub-name">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <circle cx="12" cy="12" r="8"></circle>
+                        </svg>
+                        ${escapeHtml(hubName)}
+                    </div>
+                    ${Array.from(handlers.keys()).map(eventName => `
+                        <div class="handler-item">
+                            <div class="handler-info">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                                </svg>
+                                <span class="handler-event-name">${escapeHtml(eventName)}</span>
+                            </div>
+                            <button 
+                                class="btn-icon-small btn-danger-icon" 
+                                onclick="removeEventHandler('${escapeJsString(hubName)}', '${escapeJsString(eventName)}')"
+                                title="Remove handler"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            `);
+        }
+    });
+    
+    if (totalHandlers > 0) {
+        listContainer.innerHTML = handlersHTML.join('');
+        countBadge.textContent = totalHandlers;
+        countBadge.style.display = 'inline-block';
+    } else {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                <p>No event handlers registered</p>
+                <small>Connect to a hub and register event handlers to see them here</small>
+            </div>
+        `;
+        countBadge.style.display = 'none';
+    }
+}
+
+function removeEventHandler(hubName, eventName) {
+    const connection = connections.get(hubName);
+    const handlers = registeredHandlers.get(hubName);
+    
+    if (!connection || !handlers) return;
+    
+    const handler = handlers.get(eventName);
+    if (handler) {
+        // Remove the handler from SignalR connection
+        connection.off(eventName, handler);
+        
+        // Remove from our tracking
+        handlers.delete(eventName);
+        
+        if (handlers.size === 0) {
+            registeredHandlers.delete(hubName);
+        }
+        
+        // Update storage and UI
+        saveHandlersToStorage();
+        updateEventHandlersUI();
+        
+        addLog('info', `✓ Removed event handler for "${eventName}" from ${hubName}`);
+        
+        // Update hub details if we're viewing this hub
+        if (currentHub && currentHub.name === hubName) {
+            renderHubDetails();
+        }
     }
 }
