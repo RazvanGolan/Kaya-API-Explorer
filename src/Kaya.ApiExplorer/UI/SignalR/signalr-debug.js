@@ -559,7 +559,7 @@ function registerEventHandler() {
         closeEventHandlerModal();
     } catch (error) {
         console.error('Failed to register handler:', error);
-        addLog('error', `Failed to register handler: ${error.message}`);
+        addLog('error', `Failed to register handler:`, error.message);
         alert(`Failed to register handler: ${error.message}`);
     }
 }
@@ -602,12 +602,12 @@ async function invokeMethod() {
         }
         
         const argsDisplay = args.length > 0 ? JSON.stringify(args) : 'no arguments';
-        addLog('info', `Invoking ${methodName}(${argsDisplay})`);
+        addLog('info', `Invoking ${methodName}`, args.length > 0 ? args : null);
         
         const result = await connection.invoke(methodName, ...args);
 
         if (result !== undefined && result !== null) {
-            addLog('success', `${methodName} returned: ${JSON.stringify(result, null, 2)}`);
+            addLog('success', `${methodName} returned: `, result);
         } else {
             addLog('success', `${methodName} completed successfully`);
         }
@@ -615,7 +615,7 @@ async function invokeMethod() {
         closeMethodModal();
     } catch (error) {
         console.error('Method invocation failed:', error);
-        addLog('error', `${methodName} failed: ${error.message}`);
+        addLog('error', `${methodName} failed:`, error.message);
         alert(`Failed to invoke method: ${error.message}`);
     }
 }

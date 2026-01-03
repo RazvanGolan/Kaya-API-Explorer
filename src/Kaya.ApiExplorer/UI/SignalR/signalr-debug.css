@@ -368,22 +368,16 @@
 
 .log-data {
   margin-top: 8px;
-  padding: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  padding-left: 4px;
+  border-left: 3px solid currentColor;
   overflow-x: auto;
   font-family: 'Courier New', monospace;
   font-size: 12px;
   white-space: pre-wrap;
   margin-bottom: 0;
-  overflow-wrap: break-word;
   word-wrap: break-word;
   max-width: 100%;
   min-width: 0;
-}
-
-[data-theme="dark"] .log-data {
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .log-entry.info {
