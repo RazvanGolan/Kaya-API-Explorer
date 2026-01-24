@@ -8,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Add OpenAPI services
+builder.Services.AddOpenApi();
+
 // Add SignalR
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
@@ -64,5 +67,8 @@ app.MapHub<ChatHub>("/chat");
 app.MapHub<StockTickerHub>("/stockticker");
 
 app.MapControllers();
+
+// Map OpenAPI endpoint
+app.MapOpenApi();
 
 app.Run();
