@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Demo.WebApi/Demo.WebApi.csproj" />
+    <Project Path="src/Kaya.ApiExplorer/Kaya.ApiExplorer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kaya.ApiExplorer.Tests/Kaya.ApiExplorer.Tests.csproj" />
+  </Folder>
+</Solution>
