@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package orders;
+
+option csharp_namespace = "Demo.GrpcOrdersService";
+
+// Order service for managing customer orders
+service OrderService {
+  // Get a single order by ID (Unary)
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  
+  // Create a new order (Unary)
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  
+  // Watch order updates in real-time (Server Streaming)
+  rpc WatchOrders(WatchOrdersRequest) returns (stream OrderResponse);
+}
+
+// Request to get an order
+message GetOrderRequest {
+  // Order ID to retrieve
+  string order_id = 1;
+}
+
+// Request to create an order
+message CreateOrderRequest {
+  // Customer ID
+  string customer_id = 1;
+  
+  // List of items in the order
+  repeated OrderItem items = 2;
+  
+  // Delivery address
+  string delivery_address = 3;
+}
+
+// Order item details
+message OrderItem {
+  // Product ID
+  string product_id = 1;
+  
+  // Quantity ordered
+  int32 quantity = 2;
+  
+  // Price per unit
+  double unit_price = 3;
+}
+
+// Request to watch orders
+message WatchOrdersRequest {
+  // Optional customer ID filter
+  string customer_id = 1;
+  
+  // Optional status filter
+  OrderStatus status = 2;
+}
+
+// Order response
+message OrderResponse {
+  // Unique order ID
+  string order_id = 1;
+  
+  // Customer ID
+  string customer_id = 2;
+  
+  // Order items
+  repeated OrderItem items = 3;
+  
+  // Order status
+  OrderStatus status = 4;
+  
+  // Total amount
+  double total_amount = 5;
+  
+  // Created timestamp
+  string created_at = 6;
+  
+  // Delivery address
+  string delivery_address = 7;
+}
+
+// Order status enum
+enum OrderStatus {
+  PENDING = 0;
+  CONFIRMED = 1;
+  PROCESSING = 2;
+  SHIPPED = 3;
+  DELIVERED = 4;
+  CANCELLED = 5;
+}

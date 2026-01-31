@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package inventory;
+
+option csharp_namespace = "Demo.GrpcInventoryService";
+
+// Inventory service for managing product stock
+service InventoryService {
+  // Check stock for a single product (Unary)
+  rpc CheckStock(CheckStockRequest) returns (StockResponse);
+  
+  // Update multiple product stocks (Client Streaming)
+  rpc UpdateInventory(stream StockUpdate) returns (UpdateInventoryResponse);
+  
+  // Bidirectional sync of inventory data (Bidirectional Streaming)
+  rpc SyncInventory(stream InventorySyncMessage) returns (stream InventorySyncMessage);
+}
+
+// Request to check stock
+message CheckStockRequest {
+  // Product ID to check
+  string product_id = 1;
+  
+  // Optional warehouse location
+  string warehouse_id = 2;
+}
+
+// Stock response
+message StockResponse {
+  // Product ID
+  string product_id = 1;
+  
+  // Current quantity in stock
+  int32 quantity = 2;
+  
+  // Warehouse location
+  string warehouse_id = 3;
+  
+  // Last updated timestamp
+  string last_updated = 4;
+  
+  // Stock status
+  StockStatus status = 5;
+}
+
+// Stock update message for streaming
+message StockUpdate {
+  // Product ID to update
+  string product_id = 1;
+  
+  // New quantity (can be negative for removals)
+  int32 quantity_delta = 2;
+  
+  // Warehouse ID
+  string warehouse_id = 3;
+  
+  // Reason for update
+  string reason = 4;
+}
+
+// Response after inventory update
+message UpdateInventoryResponse {
+  // Number of products updated
+  int32 products_updated = 1;
+  
+  // Total quantity changed
+  int32 total_quantity_changed = 2;
+  
+  // List of updated product IDs
+  repeated string updated_product_ids = 3;
+}
+
+// Inventory sync message for bidirectional streaming
+message InventorySyncMessage {
+  // Message type
+  SyncMessageType type = 1;
+  
+  // Product ID
+  string product_id = 2;
+  
+  // Current quantity
+  int32 quantity = 3;
+  
+  // Timestamp
+  string timestamp = 4;
+  
+  // Warehouse ID
+  string warehouse_id = 5;
+}
+
+// Sync message types
+enum SyncMessageType {
+  QUERY = 0;
+  UPDATE = 1;
+  CONFIRM = 2;
+}
+
+// Stock status enum
+enum StockStatus {
+  OUT_OF_STOCK = 0;
+  LOW_STOCK = 1;
+  IN_STOCK = 2;
+  OVERSTOCKED = 3;
+}
