@@ -1,6 +1,6 @@
-using Kaya.ApiExplorer.Extensions;
 using Demo.WebApi.Authentication;
 using Demo.WebApi.Hubs;
+using Kaya.ApiExplorer.Extensions;
 using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);

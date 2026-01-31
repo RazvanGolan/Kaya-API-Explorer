@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.SignalR;
-using Demo.WebApi.Models;
 
 namespace Demo.WebApi.Hubs;
 

@@ -15,20 +15,20 @@ public class InventoryServiceImpl : InventoryService.InventoryServiceBase
         _logger = logger;
         
         // Initialize some sample data
-        if (_inventory.Count == 0)
+        if (_inventory.Count != 0) 
+            return;
+        
+        for (var i = 1; i <= 10; i++)
         {
-            for (int i = 1; i <= 10; i++)
+            var productId = $"PROD-{i:D3}";
+            _inventory[productId] = new StockResponse
             {
-                var productId = $"PROD-{i:D3}";
-                _inventory[productId] = new StockResponse
-                {
-                    ProductId = productId,
-                    Quantity = i * 10,
-                    WarehouseId = "WH-01",
-                    LastUpdated = DateTime.UtcNow.ToString("o"),
-                    Status = StockStatus.InStock
-                };
-            }
+                ProductId = productId,
+                Quantity = i * 10,
+                WarehouseId = "WH-01",
+                LastUpdated = DateTime.UtcNow.ToString("o"),
+                Status = StockStatus.InStock
+            };
         }
     }
 
@@ -167,7 +167,7 @@ public class InventoryServiceImpl : InventoryService.InventoryServiceBase
 
                 case SyncMessageType.Update:
                     // Client is sending an update
-                    if (!_inventory.ContainsKey(message.ProductId))
+                    if (!_inventory.TryGetValue(message.ProductId, out var existingStock))
                     {
                         _inventory[message.ProductId] = new StockResponse
                         {
@@ -180,7 +180,6 @@ public class InventoryServiceImpl : InventoryService.InventoryServiceBase
                     }
                     else
                     {
-                        var existingStock = _inventory[message.ProductId];
                         existingStock.Quantity = message.Quantity;
                         existingStock.LastUpdated = DateTime.UtcNow.ToString("o");
                     }

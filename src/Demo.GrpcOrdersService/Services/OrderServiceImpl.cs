@@ -7,7 +7,6 @@ namespace Demo.GrpcOrdersService.Services;
 /// </summary>
 public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.OrderServiceBase
 {
-    private readonly ILogger<OrderServiceImpl> _logger = logger;
     private static readonly Dictionary<string, OrderResponse> _orders = new();
     private static int _orderCounter = 1;
 
@@ -16,7 +15,7 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
     /// </summary>
     public override Task<OrderResponse> GetOrder(GetOrderRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("Getting order: {OrderId}", request.OrderId);
+        logger.LogInformation("Getting order: {OrderId}", request.OrderId);
 
         if (_orders.TryGetValue(request.OrderId, out var order))
         {
@@ -31,7 +30,7 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
     /// </summary>
     public override Task<OrderResponse> CreateOrder(CreateOrderRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("Creating order for customer: {CustomerId}", request.CustomerId);
+        logger.LogInformation("Creating order for customer: {CustomerId}", request.CustomerId);
 
         var orderId = $"ORD-{_orderCounter++:D5}";
         var totalAmount = request.Items.Sum(item => item.Quantity * item.UnitPrice);
@@ -58,7 +57,7 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
     /// </summary>
     public override async Task WatchOrders(WatchOrdersRequest request, IServerStreamWriter<OrderResponse> responseStream, ServerCallContext context)
     {
-        _logger.LogInformation("Client watching orders for customer: {CustomerId}", request.CustomerId ?? "ALL");
+        logger.LogInformation("Client watching orders for customer: {CustomerId}", request.CustomerId ?? "ALL");
 
         // Send existing orders
         foreach (var order in _orders.Values)
@@ -99,6 +98,6 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
             await responseStream.WriteAsync(order);
         }
 
-        _logger.LogInformation("Completed watching orders");
+        logger.LogInformation("Completed watching orders");
     }
 }

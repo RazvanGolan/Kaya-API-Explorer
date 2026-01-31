@@ -1,7 +1,6 @@
-using Xunit;
+using System.Reflection;
 using Kaya.ApiExplorer.Helpers;
 using Kaya.ApiExplorer.Models;
-using System.Reflection;
 
 namespace Kaya.ApiExplorer.Tests;
 

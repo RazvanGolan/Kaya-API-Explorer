@@ -1,8 +1,8 @@
+using Kaya.ApiExplorer.Configuration;
+using Kaya.ApiExplorer.Middleware;
+using Kaya.ApiExplorer.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Kaya.ApiExplorer.Services;
-using Kaya.ApiExplorer.Middleware;
-using Kaya.ApiExplorer.Configuration;
 
 namespace Kaya.ApiExplorer.Extensions;
 

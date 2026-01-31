@@ -1,0 +1,47 @@
+using Kaya.GrpcExplorer.Configuration;
+using Kaya.GrpcExplorer.Middleware;
+using Kaya.GrpcExplorer.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Kaya.GrpcExplorer.Extensions;
+
+/// <summary>
+/// Extension methods for setting up Kaya gRPC Explorer in an ASP.NET Core application
+/// </summary>
+public static class ServiceExtensions
+{
+    /// <summary>
+    /// Adds Kaya gRPC Explorer services to the dependency injection container
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    /// <param name="configure">Action to configure options</param>
+    /// <returns>The service collection for chaining</returns>
+    public static IServiceCollection AddKayaGrpcExplorer(
+        this IServiceCollection services,
+        Action<KayaGrpcExplorerOptions>? configure = null)
+    {
+        var options = new KayaGrpcExplorerOptions();
+        configure?.Invoke(options);
+
+        // Register options
+        services.AddSingleton(options);
+
+        // Register services
+        services.AddSingleton<IGrpcServiceScanner, GrpcServiceScanner>();
+        services.AddSingleton<IGrpcProxyService, GrpcProxyService>();
+        services.AddSingleton<IGrpcUiService, GrpcUiService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Adds Kaya gRPC Explorer middleware to the application pipeline
+    /// </summary>
+    /// <param name="app">The application builder</param>
+    /// <returns>The application builder for chaining</returns>
+    public static IApplicationBuilder UseKayaGrpcExplorer(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<GrpcExplorerMiddleware>();
+    }
+}

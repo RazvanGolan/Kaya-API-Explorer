@@ -1,0 +1,198 @@
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
+using Kaya.GrpcExplorer.Configuration;
+using Kaya.GrpcExplorer.Helpers;
+using Kaya.GrpcExplorer.Models;
+
+namespace Kaya.GrpcExplorer.Services;
+
+public interface IGrpcServiceScanner
+{
+    Task<List<GrpcServiceInfo>> ScanServicesAsync(string serverAddress);
+}
+
+/// <summary>
+/// Service for scanning gRPC services using Server Reflection
+/// </summary>
+public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceScanner
+{
+    private readonly Dictionary<string, List<GrpcServiceInfo>> _cache = new();
+
+    /// <summary>
+    /// Scans a gRPC server for services using reflection
+    /// </summary>
+    public async Task<List<GrpcServiceInfo>> ScanServicesAsync(string serverAddress)
+    {
+        if (_cache.TryGetValue(serverAddress, out var cachedServices))
+        {
+            return cachedServices;
+        }
+
+        var services = new List<GrpcServiceInfo>();
+
+        try
+        {
+            var serviceNames = await GrpcReflectionHelper.ListServicesAsync(
+                serverAddress,
+                options.Middleware.AllowInsecureConnections);
+
+            foreach (var serviceName in serviceNames)
+            {
+                try
+                {
+                    var serviceInfo = await GetServiceInfoAsync(serverAddress, serviceName);
+                    if (serviceInfo is not null)
+                    {
+                        services.Add(serviceInfo);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error scanning service {serviceName}: {ex.Message}");
+                }
+            }
+            
+            _cache[serverAddress] = services;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error scanning services from {serverAddress}: {ex.Message}");
+            throw new InvalidOperationException(
+                $"Failed to scan gRPC services. Ensure the server at '{serverAddress}' " +
+                $"is running and has gRPC reflection enabled. Error: {ex.Message}", ex);
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Gets detailed information about a specific service
+    /// </summary>
+    private async Task<GrpcServiceInfo?> GetServiceInfoAsync(string serverAddress, string serviceName)
+    {
+        var fileDescriptorSet = await GrpcReflectionHelper.GetFileDescriptorAsync(
+            serverAddress,
+            serviceName,
+            options.Middleware.AllowInsecureConnections);
+
+        if (fileDescriptorSet is null)
+        {
+            return null;
+        }
+
+        // Build descriptor pool
+        var descriptorPool = new FileDescriptorSet();
+        foreach (var file in fileDescriptorSet.File)
+        {
+            descriptorPool.File.Add(file);
+        }
+
+        // Find the service in the descriptors
+        foreach (var fileProto in fileDescriptorSet.File)
+        {
+            using var ms = new MemoryStream();
+            using var cos = new CodedOutputStream(ms);
+            fileProto.WriteTo(cos);
+            cos.Flush();
+            
+            var fileDescriptors = FileDescriptor.BuildFromByteStrings(
+                [ByteString.CopyFrom(ms.ToArray())]);
+
+            foreach (var fd in fileDescriptors)
+            {
+                foreach (var service in fd.Services)
+                {
+                    if (service.FullName == serviceName)
+                    {
+                        return BuildServiceInfo(service);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Builds service info from service descriptor
+    /// </summary>
+    private GrpcServiceInfo BuildServiceInfo(ServiceDescriptor service)
+    {
+        var serviceInfo = new GrpcServiceInfo
+        {
+            ServiceName = service.FullName,
+            SimpleName = service.Name,
+            Package = service.File.Package,
+            Description = GetLeadingComments(service),
+            Methods = []
+        };
+
+        foreach (var method in service.Methods)
+        {
+            serviceInfo.Methods.Add(BuildMethodInfo(method));
+        }
+
+        return serviceInfo;
+    }
+
+    /// <summary>
+    /// Builds method info from method descriptor
+    /// </summary>
+    private static GrpcMethodInfo BuildMethodInfo(MethodDescriptor method)
+    {
+        var methodType = GetMethodType(method);
+
+        return new GrpcMethodInfo
+        {
+            MethodName = method.Name,
+            MethodType = methodType,
+            Description = GetLeadingComments(method),
+            RequestType = ProtobufHelper.MessageDescriptorToSchema(method.InputType),
+            ResponseType = ProtobufHelper.MessageDescriptorToSchema(method.OutputType),
+            IsDeprecated = IsDeprecated(method)
+        };
+    }
+
+    /// <summary>
+    /// Determines the method type from descriptor
+    /// </summary>
+    private static GrpcMethodType GetMethodType(MethodDescriptor method)
+    {
+        var isClientStreaming = method.IsClientStreaming;
+        var isServerStreaming = method.IsServerStreaming;
+
+        return isClientStreaming switch
+        {
+            false when !isServerStreaming => GrpcMethodType.Unary,
+            false when isServerStreaming => GrpcMethodType.ServerStreaming,
+            true when !isServerStreaming => GrpcMethodType.ClientStreaming,
+            _ => GrpcMethodType.DuplexStreaming
+        };
+    }
+
+    /// <summary>
+    /// Gets leading comments from descriptor
+    /// </summary>
+    private static string GetLeadingComments(IDescriptor descriptor)
+    {
+        // Source location API changed in Protobuf v4
+        // Skipping comments extraction for now - can be added later
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Checks if a method is deprecated
+    /// </summary>
+    private static bool IsDeprecated(MethodDescriptor method)
+    {
+        return method.GetOptions()?.Deprecated ?? false;
+    }
+
+    /// <summary>
+    /// Clears cache for specific server
+    /// </summary>
+    public void ClearCache(string serverAddress)
+    {
+        _cache.Remove(serverAddress);
+    }
+}
