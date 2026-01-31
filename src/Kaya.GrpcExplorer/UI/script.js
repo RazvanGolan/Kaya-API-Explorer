@@ -4,6 +4,65 @@ let selectedService = ""
 let expandedMethods = []
 let currentServerAddress = ""
 
+// Theme Management
+function initializeTheme() {
+    const config = window.KayaGrpcExplorerConfig || { defaultTheme: 'light' }
+    const savedTheme = localStorage.getItem('kayaGrpcTheme') || config.defaultTheme
+    document.documentElement.setAttribute('data-theme', savedTheme)
+    updateThemeIcons()
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme')
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light'
+    document.documentElement.setAttribute('data-theme', newTheme)
+    localStorage.setItem('kayaGrpcTheme', newTheme)
+    updateThemeIcons()
+}
+
+function updateThemeIcons() {
+    const currentTheme = document.documentElement.getAttribute('data-theme')
+    const sunIcon = document.querySelector('.sun-icon')
+    const moonIcon = document.querySelector('.moon-icon')
+    const themeText = document.querySelector('.theme-text')
+    
+    if (currentTheme === 'dark') {
+        if (sunIcon) sunIcon.style.display = 'block'
+        if (moonIcon) moonIcon.style.display = 'none'
+        if (themeText) themeText.textContent = 'Light'
+    } else {
+        if (sunIcon) sunIcon.style.display = 'none'
+        if (moonIcon) moonIcon.style.display = 'block'
+        if (themeText) themeText.textContent = 'Dark'
+    }
+}
+
+// Modal Management
+function showModal(modalId) {
+    const modal = document.getElementById(modalId)
+    if (modal) {
+        modal.classList.add('show')
+    }
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId)
+    if (modal) {
+        modal.classList.remove('show')
+    }
+}
+
+function initializeModals() {
+    // Close modals when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                hideModal(modal.id)
+            }
+        })
+    })
+}
+
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async () => {
     initializeTheme()

@@ -19,7 +19,7 @@ public class GrpcExplorerMiddleware(RequestDelegate next, KayaGrpcExplorerOption
         var path = context.Request.Path.Value?.ToLower() ?? "";
 
         // Check if request is for gRPC Explorer
-        if (path.StartsWith(_routePrefix.ToLower()))
+        if (path.StartsWith(_routePrefix, StringComparison.OrdinalIgnoreCase))
         {
             if (path == $"{_routePrefix.ToLower()}" || path == $"{_routePrefix.ToLower()}/")
             {
@@ -49,7 +49,7 @@ public class GrpcExplorerMiddleware(RequestDelegate next, KayaGrpcExplorerOption
     /// <summary>
     /// Serves the gRPC Explorer UI
     /// </summary>
-    private async Task ServeUIAsync(HttpContext context)
+    private static async Task ServeUIAsync(HttpContext context)
     {
         var uiService = context.RequestServices.GetRequiredService<IGrpcUiService>();
         var html = await uiService.GetUIAsync();

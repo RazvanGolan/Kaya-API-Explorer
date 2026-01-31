@@ -103,23 +103,28 @@ public static class GrpcReflectionHelper
     /// </summary>
     public static GrpcChannel CreateChannel(string serverAddress, bool allowInsecure = false)
     {
-        var httpHandler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = allowInsecure
-                ? HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                : null
-        };
-
         var url = serverAddress.StartsWith("http") 
             ? serverAddress 
-            : allowInsecure ? $"http://{serverAddress}" : $"https://{serverAddress}";
+            : $"https://{serverAddress}";
 
-        return GrpcChannel.ForAddress(url, new GrpcChannelOptions
+        var channelOptions = new GrpcChannelOptions
         {
-            HttpHandler = httpHandler,
             MaxReceiveMessageSize = 16 * 1024 * 1024, // 16 MB
             MaxSendMessageSize = 16 * 1024 * 1024 // 16 MB
-        });
+        };
+
+        // Only configure custom handler if we need to bypass certificate validation
+        if (allowInsecure)
+        {
+            var httpHandler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = 
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+            channelOptions.HttpHandler = httpHandler;
+        }
+
+        return GrpcChannel.ForAddress(url, channelOptions);
     }
 
     /// <summary>

@@ -13,8 +13,8 @@ builder.Services.AddGrpcReflection();
 builder.Services.AddKayaGrpcExplorer(options =>
 {
     options.Middleware.RoutePrefix = "/grpc-explorer";
-    options.Middleware.DefaultServerAddress = "localhost:5002";
-    options.Middleware.AllowInsecureConnections = true; // For dev only
+    options.Middleware.DefaultServerAddress = "https://localhost:5002";
+    options.Middleware.AllowInsecureConnections = true; // For dev certs
 });
 
 var app = builder.Build();

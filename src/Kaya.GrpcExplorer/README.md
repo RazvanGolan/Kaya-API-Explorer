@@ -57,7 +57,7 @@ app.Run();
 
 ### 3. Access the UI
 
-Navigate to `http://localhost:5000/grpc-explorer` (or your app's URL) to explore your gRPC services.
+Navigate to `https://localhost:5000/grpc-explorer` (or your app's URL) to explore your gRPC services.
 
 > **⚠️ Important**: gRPC Server Reflection must be enabled for the explorer to work. This should only be enabled in development environments for security reasons.
 
@@ -105,8 +105,8 @@ builder.Services.AddKayaGrpcExplorer(options =>
 {
     options.Middleware.RoutePrefix = "/grpc-explorer";
     options.Middleware.DefaultTheme = "dark";
-    options.Middleware.DefaultServerAddress = "localhost:5000";
-    options.Middleware.AllowInsecureConnections = true; // Dev only
+    options.Middleware.DefaultServerAddress = "https://localhost:5000";
+    options.Middleware.AllowInsecureConnections = true; // Bypass cert validation (dev only)
     options.Middleware.StreamBufferSize = 100;
     options.Middleware.RequestTimeoutSeconds = 30;
 });
@@ -124,6 +124,14 @@ app.MapGrpcService<YourGrpcService>();
 app.Run();
 ```
 
+**Configuration Options:**
+- `RoutePrefix`: URL path for the explorer UI (default: `/grpc-explorer`)
+- `DefaultTheme`: UI theme - `"light"` or `"dark"` (default: `"light"`)
+- `DefaultServerAddress`: Default gRPC server to connect to
+- `AllowInsecureConnections`: Bypass certificate validation - **use only in development** (default: `false`)
+- `StreamBufferSize`: Max messages to buffer for streaming responses (default: 50)
+- `RequestTimeoutSeconds`: Timeout for gRPC requests (default: 30)
+
 ## Demo Projects
 
 This repository includes two demo gRPC services showcasing different RPC types:
@@ -137,7 +145,7 @@ cd src/Demo.GrpcOrdersService
 dotnet run
 ```
 
-Then navigate to `http://localhost:5001/grpc-explorer`
+Then navigate to `https://localhost:5001/grpc-explorer`
 
 **Available Methods:**
 - `GetOrder` (Unary) - Retrieve a single order
@@ -153,7 +161,7 @@ cd src/Demo.GrpcInventoryService
 dotnet run
 ```
 
-Then navigate to `http://localhost:5002/grpc-explorer`
+Then navigate to `https://localhost:5002/grpc-explorer`
 
 **Available Methods:**
 - `CheckStock` (Unary) - Check stock for a product
