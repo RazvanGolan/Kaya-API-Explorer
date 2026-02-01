@@ -35,9 +35,13 @@ public class GrpcUiService(KayaGrpcExplorerOptions options) : IGrpcUiService
        var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.index.html");
        var grpcStyles = await ReadEmbeddedResourceAsync(assembly, "UI.grpc-styles.css");
        var grpcScript = await ReadEmbeddedResourceAsync(assembly, "UI.script.js");
+       var iconSvg = await ReadEmbeddedResourceAsync(assembly, "UI.icon.svg");
 
        // Generate config script
        var configScript = GenerateConfigScript();
+
+       // Convert icon to base64 for inline embedding
+       var svgBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(iconSvg));
 
        // Combine all resources
        _cachedUi = htmlContent
@@ -45,7 +49,8 @@ public class GrpcUiService(KayaGrpcExplorerOptions options) : IGrpcUiService
            .Replace("<!-- GRPC_STYLES -->", $"<style>{grpcStyles}</style>")
            .Replace("<!-- CONFIG_SCRIPT -->", configScript)
            .Replace("<!-- SHARED_AUTH_SCRIPT -->", $"<script>{sharedAuth}</script>")
-           .Replace("<!-- GRPC_SCRIPT -->", $"<script>{grpcScript}</script>");
+           .Replace("<!-- GRPC_SCRIPT -->", $"<script>{grpcScript}</script>")
+           .Replace("<link rel=\"icon\" type=\"image/svg+xml\" href=\"icon.svg\">", $"<link rel=\"icon\" type=\"image/svg+xml\" href=\"data:image/svg+xml;base64,{svgBase64}\">");
        
        return _cachedUi;
    }
@@ -82,7 +87,7 @@ public class GrpcUiService(KayaGrpcExplorerOptions options) : IGrpcUiService
        }
 
        await using var stream = assembly.GetManifestResourceStream(fullResourceName);
-       if (stream == null)
+       if (stream is null)
        {
            return string.Empty;
        }

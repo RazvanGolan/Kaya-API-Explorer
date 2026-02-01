@@ -374,23 +374,24 @@ async function invokeMethod(serviceName, methodIndex) {
             metadata: metadata
         }
         
+        const requestBodyStr = JSON.stringify(requestBody)
+        const requestSize = new Blob([requestBodyStr]).size
+        
         const response = await fetch(`${routePrefix}/invoke`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody)
+            body: requestBodyStr
         })
         
         const result = await response.json()
         
         if (result.success) {
             const responseJson = result.responseJson || JSON.stringify(result.streamResponses, null, 2)
+            const responseSize = new Blob([responseJson]).size
+            const duration = result.durationMs || 0
+            
             responseContainer.innerHTML = `
-                <div class="server-status connected">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Success (${result.durationMs}ms)
-                </div>
+                ${generatePerformanceHtml(duration, requestSize, responseSize)}
                 <div class="code-block" style="position: relative;">
                     <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
                         <button class="copy-btn" onclick="copyResponseToClipboard(this)" title="Copy to clipboard">
@@ -491,6 +492,46 @@ function clearSearch() {
     document.getElementById('searchInput').value = ''
     document.getElementById('clearSearchBtn').style.display = 'none'
     filterServices()
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
+function formatDuration(ms) {
+    if (ms < 1000) return `${ms}ms`
+    return `${(ms / 1000).toFixed(1)}s`
+}
+
+function getDurationColor(ms) {
+    if (ms < 500) return '#22c55e' 
+    if (ms < 1000) return '#f59e0b'
+    return '#ef4444'
+}
+
+function getSizeColor(bytes) {
+    if (bytes < 1024) return '#22c55e'
+    if (bytes < 1024 * 100) return '#f59e0b'
+    return '#ef4444'
+}
+
+function generatePerformanceHtml(duration, requestSize, responseSize) {
+    return `
+        <div class="performance-metrics" style="background: var(--bg-secondary); border-radius: 6px; padding: 12px; margin-bottom: 12px; border-left: 4px solid ${getDurationColor(duration)};">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <h6 style="margin: 0; color: var(--text-primary);">Performance</h6>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85em;">
+                <div><strong>Duration:</strong> <span style="color: ${getDurationColor(duration)}; font-weight: 600;">${formatDuration(duration)}</span></div>
+                <div><strong>Request:</strong> <span style="color: ${getSizeColor(requestSize)}; font-weight: 600;">${formatBytes(requestSize)}</span></div>
+                <div><strong>Response:</strong> <span style="color: ${getSizeColor(responseSize)}; font-weight: 600;">${formatBytes(responseSize)}</span></div>
+            </div>
+        </div>
+    `
 }
 
 function copyResponseToClipboard(button) {

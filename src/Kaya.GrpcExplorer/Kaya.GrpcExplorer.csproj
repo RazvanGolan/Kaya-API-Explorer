@@ -17,6 +17,7 @@
     <PackageProjectUrl>https://github.com/RazvanGolan/Kaya</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>Initial release of gRPC Explorer with Server Reflection support for automatic service discovery and testing.</PackageReleaseNotes>
   </PropertyGroup>  
 
@@ -35,6 +36,7 @@
   <ItemGroup>
     <EmbeddedResource Include="UI/**/*" />
     <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="UI/icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
