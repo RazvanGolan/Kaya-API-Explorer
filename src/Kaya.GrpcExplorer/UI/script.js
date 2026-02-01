@@ -383,6 +383,7 @@ async function invokeMethod(serviceName, methodIndex) {
         const result = await response.json()
         
         if (result.success) {
+            const responseJson = result.responseJson || JSON.stringify(result.streamResponses, null, 2)
             responseContainer.innerHTML = `
                 <div class="server-status connected">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -390,8 +391,25 @@ async function invokeMethod(serviceName, methodIndex) {
                     </svg>
                     Success (${result.durationMs}ms)
                 </div>
-                <div class="code-block">
-                    <pre>${result.responseJson || JSON.stringify(result.streamResponses, null, 2)}</pre>
+                <div class="code-block" style="position: relative;">
+                    <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
+                        <button class="copy-btn" onclick="copyResponseToClipboard(this)" title="Copy to clipboard">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        <button class="copy-btn save-btn" 
+                                onclick="saveResponseToFile(this, '${method.methodName}')" 
+                                title="Save to file">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                <polyline points="17,21 17,13 7,13 7,21"></polyline>
+                                <polyline points="7,3 7,8 15,8"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                    <pre>${responseJson}</pre>
                 </div>
             `
         } else {
@@ -473,4 +491,42 @@ function clearSearch() {
     document.getElementById('searchInput').value = ''
     document.getElementById('clearSearchBtn').style.display = 'none'
     filterServices()
+}
+
+function copyResponseToClipboard(button) {
+    const buttonContainer = button.parentElement
+    const preElement = buttonContainer.nextElementSibling
+    const responseBody = preElement ? preElement.textContent : ''
+    
+    navigator.clipboard.writeText(responseBody).then(() => {
+        const originalIcon = button.innerHTML
+        button.innerHTML = "✓"
+        setTimeout(() => {
+            button.innerHTML = originalIcon
+        }, 2000)
+    })
+}
+
+function saveResponseToFile(button, methodName) {
+    const buttonContainer = button.parentElement
+    const preElement = buttonContainer.nextElementSibling
+    const content = preElement ? preElement.textContent : ''
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const cleanMethodName = methodName.replace(/[^a-zA-Z0-9]/g, '')
+    const filename = `grpc-${cleanMethodName}-response-${timestamp}.json`
+    
+    const blob = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+    
+    const originalIcon = button.innerHTML
+    button.innerHTML = "✓"
+    setTimeout(() => {
+        button.innerHTML = originalIcon
+    }, 2000)
 }

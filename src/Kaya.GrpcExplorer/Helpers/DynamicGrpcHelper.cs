@@ -226,6 +226,18 @@ public static class DynamicGrpcHelper
     /// </summary>
     private static string ConvertProtobufBytesToJson(MessageDescriptor descriptor, byte[] bytes)
     {
+        var result = ConvertProtobufBytesToObject(descriptor, bytes);
+        return JsonSerializer.Serialize(result, new JsonSerializerOptions 
+        { 
+            WriteIndented = true 
+        });
+    }
+
+    /// <summary>
+    /// Converts protobuf bytes to a dictionary object using the descriptor
+    /// </summary>
+    private static Dictionary<string, object?> ConvertProtobufBytesToObject(MessageDescriptor descriptor, byte[] bytes)
+    {
         var result = new Dictionary<string, object?>();
         var input = new CodedInputStream(bytes);
 
@@ -258,10 +270,7 @@ public static class DynamicGrpcHelper
             }
         }
 
-        return JsonSerializer.Serialize(result, new JsonSerializerOptions 
-        { 
-            WriteIndented = true 
-        });
+        return result;
     }
 
     /// <summary>
@@ -281,7 +290,7 @@ public static class DynamicGrpcHelper
             FieldType.Double => input.ReadDouble(),
             FieldType.Bytes => Convert.ToBase64String(input.ReadBytes().ToByteArray()),
             FieldType.Enum => field.EnumType.FindValueByNumber(input.ReadEnum())?.Name ?? input.ReadEnum().ToString(),
-            FieldType.Message => ConvertProtobufBytesToJson(field.MessageType, input.ReadBytes().ToByteArray()),
+            FieldType.Message => ConvertProtobufBytesToObject(field.MessageType, input.ReadBytes().ToByteArray()),
             _ => null
         };
     }

@@ -234,9 +234,7 @@ public class NotificationsController : ControllerBase
 
         if (userId.HasValue)
         {
-            filteredNotifications = filteredNotifications
-                .Where(n => n.UserId == userId.Value)
-                .ToList();
+            filteredNotifications = [.. filteredNotifications.Where(n => n.UserId == userId.Value)];
         }
 
         var statistics = new NotificationStatistics
