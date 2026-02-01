@@ -130,9 +130,14 @@ public static class GrpcReflectionHelper
     /// <summary>
     /// Creates metadata from dictionary
     /// </summary>
-    public static Metadata CreateMetadata(Dictionary<string, string> headers)
+    public static Metadata CreateMetadata(Dictionary<string, string>? headers)
     {
         var metadata = new Metadata();
+        if (headers is null)
+        {
+            return metadata;
+        }
+        
         foreach (var (key, value) in headers)
         {
             metadata.Add(key, value);

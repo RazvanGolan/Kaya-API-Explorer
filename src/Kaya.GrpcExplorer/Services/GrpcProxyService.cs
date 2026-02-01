@@ -64,8 +64,8 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
                {
                    GrpcMethodType.Unary => await InvokeUnaryAsync(channel, method, request.RequestJson, metadata),
                    GrpcMethodType.ServerStreaming => await InvokeServerStreamingAsync(channel, method, request.RequestJson, metadata),
-                   GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, request.StreamRequests ?? new(), metadata),
-                   GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, request.StreamRequests ?? new(), metadata),
+                   GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, request.StreamRequests ?? [], metadata),
+                   GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, request.StreamRequests ?? [], metadata),
                    _ => throw new NotSupportedException($"Method type {method.MethodType} not supported")
                };
 
@@ -110,14 +110,29 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
        string requestJson,
        Metadata metadata)
    {
-       // Note: This is a simplified implementation
-       // A full implementation would use dynamic invocation
-       
+       var methodDescriptor = await GetMethodDescriptorForMethod(channel.Target, method);
+       if (methodDescriptor is null)
+       {
+           return new GrpcInvocationResponse
+           {
+               Success = false,
+               ErrorMessage = "Could not find method descriptor"
+           };
+       }
+
+       var request = DynamicGrpcHelper.CreateMessageFromJson(methodDescriptor.InputType, requestJson);
+
+       var grpcMethod = DynamicGrpcHelper.CreateMethod(methodDescriptor, methodDescriptor.Service.FullName);
+
+       var response = await DynamicGrpcHelper.InvokeUnaryAsync(channel, grpcMethod, request, metadata);
+
+       var responseJson = DynamicGrpcHelper.MessageToJson(response);
+
        return new GrpcInvocationResponse
        {
-           Success = false,
-           ErrorMessage = "Dynamic gRPC invocation requires full implementation with reflection and proto file parsing. " +
-                         "This is an MVP - please add your own invocation logic based on your specific services."
+           Success = true,
+           ResponseJson = responseJson,
+           StatusCode = "OK"
        };
    }
 
@@ -130,10 +145,29 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
        string requestJson,
        Metadata metadata)
    {
+       var methodDescriptor = await GetMethodDescriptorForMethod(channel.Target, method);
+       if (methodDescriptor is null)
+       {
+           return new GrpcInvocationResponse
+           {
+               Success = false,
+               ErrorMessage = "Could not find method descriptor"
+           };
+       }
+
+       var request = DynamicGrpcHelper.CreateMessageFromJson(methodDescriptor.InputType, requestJson);
+
+       var grpcMethod = DynamicGrpcHelper.CreateMethod(methodDescriptor, methodDescriptor.Service.FullName);
+
+       var responses = await DynamicGrpcHelper.InvokeServerStreamingAsync(channel, grpcMethod, request, metadata);
+
+       var responseJsonList = responses.Select(DynamicGrpcHelper.MessageToJson).ToList();
+
        return new GrpcInvocationResponse
        {
-           Success = false,
-           ErrorMessage = "Server streaming requires full implementation - MVP placeholder"
+           Success = true,
+           StreamResponses = responseJsonList,
+           StatusCode = "OK"
        };
    }
 
@@ -146,10 +180,32 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
        List<string> requests,
        Metadata metadata)
    {
+       // Get method descriptor
+       var methodDescriptor = await GetMethodDescriptorForMethod(channel.Target, method);
+       if (methodDescriptor is null)
+       {
+           return new GrpcInvocationResponse
+           {
+               Success = false,
+               ErrorMessage = "Could not find method descriptor"
+           };
+       }
+
+       var requestMessages = requests
+           .Select(json => DynamicGrpcHelper.CreateMessageFromJson(methodDescriptor.InputType, json))
+           .ToList();
+
+       var grpcMethod = DynamicGrpcHelper.CreateMethod(methodDescriptor, methodDescriptor.Service.FullName);
+
+       var response = await DynamicGrpcHelper.InvokeClientStreamingAsync(channel, grpcMethod, requestMessages, metadata);
+
+       var responseJson = DynamicGrpcHelper.MessageToJson(response);
+
        return new GrpcInvocationResponse
        {
-           Success = false,
-           ErrorMessage = "Client streaming requires full implementation - MVP placeholder"
+           Success = true,
+           ResponseJson = responseJson,
+           StatusCode = "OK"
        };
    }
 
@@ -162,10 +218,53 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
        List<string> requests,
        Metadata metadata)
    {
+       var methodDescriptor = await GetMethodDescriptorForMethod(channel.Target, method);
+       if (methodDescriptor is null)
+       {
+           return new GrpcInvocationResponse
+           {
+               Success = false,
+               ErrorMessage = "Could not find method descriptor"
+           };
+       }
+
+       var requestMessages = requests
+           .Select(json => DynamicGrpcHelper.CreateMessageFromJson(methodDescriptor.InputType, json))
+           .ToList();
+
+       var grpcMethod = DynamicGrpcHelper.CreateMethod(methodDescriptor, methodDescriptor.Service.FullName);
+
+       var responses = await DynamicGrpcHelper.InvokeDuplexStreamingAsync(channel, grpcMethod, requestMessages, metadata);
+
+       var responseJsonList = responses.Select(DynamicGrpcHelper.MessageToJson).ToList();
+
        return new GrpcInvocationResponse
        {
-           Success = false,
-           ErrorMessage = "Bidirectional streaming requires full implementation - MVP placeholder"
+           Success = true,
+           StreamResponses = responseJsonList,
+           StatusCode = "OK"
        };
+   }
+
+   /// <summary>
+   /// Helper method to get method descriptor for a given method
+   /// </summary>
+   private async Task<Google.Protobuf.Reflection.MethodDescriptor?> GetMethodDescriptorForMethod(
+       string serverAddress,
+       GrpcMethodInfo method)
+   {
+       var services = await scanner.ScanServicesAsync(serverAddress);
+       var service = services.FirstOrDefault(s => s.Methods.Any(m => m.MethodName == method.MethodName));
+       
+       if (service is null)
+       {
+           return null;
+       }
+
+       return await DynamicGrpcHelper.GetMethodDescriptorAsync(
+           serverAddress,
+           service.ServiceName,
+           method.MethodName,
+           options.Middleware.AllowInsecureConnections);
    }
 }

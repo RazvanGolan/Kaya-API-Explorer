@@ -3,7 +3,7 @@ syntax = "proto3";
 package inventory;
 
 option csharp_namespace = "Demo.GrpcInventoryService";
-
+// TODO add a nested type, duplex and file streaming
 // Inventory service for managing product stock
 service InventoryService {
   // Check stock for a single product (Unary)
