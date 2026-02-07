@@ -11,6 +11,27 @@ const STORAGE_KEYS = {
     HANDLERS: 'kayaSignalR_handlers'
 };
 
+// Auto-resize textarea helper
+function autoResizeTextarea(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// Setup auto-resize for textareas in a container
+function setupTextareaAutoResize(container) {
+  const textareas = container ? container.querySelectorAll('.body-textarea, .auth-textarea, textarea') : document.querySelectorAll('.body-textarea, .auth-textarea, textarea');
+  textareas.forEach(textarea => {
+    // Remove existing listener to avoid duplicates
+    textarea.removeEventListener('input', textarea._autoResizeHandler);
+    // Create and store the handler
+    textarea._autoResizeHandler = () => autoResizeTextarea(textarea);
+    textarea.addEventListener('input', textarea._autoResizeHandler);
+    // Initial resize for prefilled content
+    autoResizeTextarea(textarea);
+  });
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     initializeTheme();
@@ -161,8 +182,23 @@ function renderHubsList(hubs) {
         return;
     }
 
-    hubsList.innerHTML = hubs.map(hub => `
-        <div class="hub-item" onclick="selectHub('${escapeHtml(hub.name)}')">
+    // Get current search query to maintain filter state
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+    hubsList.innerHTML = hubs.map(hub => {
+        let displayStyle = '';
+        if (searchTerm) {
+            const matchesSearch = hub.name.toLowerCase().includes(searchTerm) ||
+                                hub.path.toLowerCase().includes(searchTerm) ||
+                                hub.namespace.toLowerCase().includes(searchTerm);
+            if (!matchesSearch) {
+                displayStyle = ' style="display: none;"';
+            }
+        }
+        
+        return `
+        <div class="hub-item" onclick="selectHub('${escapeHtml(hub.name)}')"${displayStyle}>
             <div class="hub-item-header">
                 <span class="hub-name">
                     ${escapeHtml(hub.name)}
@@ -173,7 +209,8 @@ function renderHubsList(hubs) {
             </div>
             <div class="hub-path">${escapeHtml(hub.path)}</div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Select a hub
@@ -530,6 +567,9 @@ function openMethodModal(method) {
     
     modal.style.display = 'flex';
     modal.dataset.methodName = method.name;
+    
+    // Auto-resize textareas in the modal
+    setupTextareaAutoResize(modal);
 }
 
 function closeMethodModal() {

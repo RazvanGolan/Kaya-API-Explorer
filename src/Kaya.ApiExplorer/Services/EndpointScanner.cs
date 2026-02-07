@@ -1,8 +1,8 @@
 using System.Reflection;
+using Kaya.ApiExplorer.Helpers;
+using Kaya.ApiExplorer.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
-using Kaya.ApiExplorer.Models;
-using Kaya.ApiExplorer.Helpers;
 
 namespace Kaya.ApiExplorer.Services;
 
@@ -78,7 +78,7 @@ public class EndpointScanner : IEndpointScanner
         var endpoints = new List<ApiEndpoint>();
         var controllerName = controllerType.Name.Replace("Controller", "");
         var routeAttribute = controllerType.GetCustomAttribute<RouteAttribute>();
-        var controllerRoute = routeAttribute?.Template ?? $"api/[controller]";
+        var controllerRoute = routeAttribute?.Template ?? "api/[controller]";
         
         controllerRoute = controllerRoute.Replace("[controller]", controllerName.ToLower());
 

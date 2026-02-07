@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Kaya.ApiExplorer.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kaya.ApiExplorer.Middleware;
 
@@ -27,7 +27,8 @@ public class SignalRDebugMiddleware
                 await ServeUI(context);
                 return;
             }
-            else if (path == $"{_routePrefix.ToLower()}/hubs")
+
+            if (path == $"{_routePrefix.ToLower()}/hubs")
             {
                 await ServeHubsData(context);
                 return;

@@ -12,9 +12,9 @@
     <Product>Kaya API Explorer</Product>
     <Description>A lightweight API documentation tool for .NET applications that automatically scans your HTTP endpoints and displays them in a beautiful, interactive UI. Features automatic endpoint discovery, clean modern interface, detailed parameter and response information, easy integration, code export capabilities, and advanced request building tools. Also includes SignalR Debug Tool for real-time hub testing and debugging.</Description>
     <PackageTags>api;explorer;documentation;endpoints;aspnetcore;middleware;ui;interactive;signalr;realtime;websockets;</PackageTags>
-    <RepositoryUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</RepositoryUrl>
+    <RepositoryUrl>https://github.com/RazvanGolan/Kaya</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/RazvanGolan/Kaya-API-Explorer</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/RazvanGolan/Kaya</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="UI/**/*" />
-    <None Include="../../README.md" Pack="true" PackagePath="\" />
-    <None Include="UI/icon.png" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="UI/ApiExplorer/icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

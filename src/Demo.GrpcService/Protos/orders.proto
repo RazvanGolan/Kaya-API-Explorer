@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package orders;
+
+option csharp_namespace = "Demo.GrpcService";
+
+// Order service for managing customer orders
+service OrderService {
+  // Get a single order by ID (Unary)
+  rpc GetOrder(GetOrderRequest) returns (OrderResponse);
+  
+  // Create a new order (Unary)
+  rpc CreateOrder(CreateOrderRequest) returns (OrderResponse);
+  
+  // Watch order updates in real-time (Server Streaming)
+  rpc WatchOrders(WatchOrdersRequest) returns (stream OrderResponse);
+  
+  // Upload bulk orders from file/batch data (Client Streaming)
+  rpc UploadBulkOrders(stream BulkOrderData) returns (BulkOrderResponse);
+  
+  // Track order fulfillment with real-time updates (Bidirectional Streaming)
+  rpc TrackOrderFulfillment(stream FulfillmentQuery) returns (stream FulfillmentUpdate);
+}
+
+// Request to get an order
+message GetOrderRequest {
+  // Order ID to retrieve
+  string order_id = 1;
+}
+
+// Request to create an order
+message CreateOrderRequest {
+  // Customer ID
+  string customer_id = 1;
+  
+  // List of items in the order
+  repeated OrderItem items = 2;
+  
+  // Delivery address
+  string delivery_address = 3;
+}
+
+// Order item details
+message OrderItem {
+  // Product ID
+  string product_id = 1;
+  
+  // Quantity ordered
+  int32 quantity = 2;
+  
+  // Price per unit
+  double unit_price = 3;
+}
+
+// Request to watch orders
+message WatchOrdersRequest {
+  // Optional customer ID filter
+  string customer_id = 1;
+  
+  // Optional status filter
+  OrderStatus status = 2;
+}
+
+// Order response
+message OrderResponse {
+  // Unique order ID
+  string order_id = 1;
+  
+  // Customer ID
+  string customer_id = 2;
+  
+  // Order items
+  repeated OrderItem items = 3;
+  
+  // Order status
+  OrderStatus status = 4;
+  
+  // Total amount
+  double total_amount = 5;
+  
+  // Created timestamp
+  string created_at = 6;
+  
+  // Delivery address
+  string delivery_address = 7;
+}
+
+// Order status enum
+enum OrderStatus {
+  PENDING = 0;
+  CONFIRMED = 1;
+  PROCESSING = 2;
+  SHIPPED = 3;
+  DELIVERED = 4;
+  CANCELLED = 5;
+}
+
+// Bulk order data for streaming upload (simulating CSV/file chunks)
+message BulkOrderData {
+  // Batch number for ordering
+  int32 batch_number = 1;
+  
+  // Customer ID
+  string customer_id = 2;
+  
+  // Order items
+  repeated OrderItem items = 3;
+  
+  // Delivery address
+  string delivery_address = 4;
+  
+  // Optional metadata (e.g., source file name)
+  string metadata = 5;
+}
+
+// Response after bulk upload
+message BulkOrderResponse {
+  // Number of orders created
+  int32 orders_created = 1;
+  
+  // Total items processed
+  int32 total_items = 2;
+  
+  // List of created order IDs
+  repeated string order_ids = 3;
+  
+  // Total value of all orders
+  double total_value = 4;
+}
+
+// Query message for fulfillment tracking
+message FulfillmentQuery {
+  // Query type
+  FulfillmentQueryType type = 1;
+  
+  // Order ID to track
+  string order_id = 2;
+  
+  // Optional location update from client
+  string current_location = 3;
+}
+
+// Fulfillment update from server
+message FulfillmentUpdate {
+  // Update type
+  FulfillmentUpdateType type = 1;
+  
+  // Order ID
+  string order_id = 2;
+  
+  // Current status
+  OrderStatus status = 3;
+  
+  // Location/tracking info
+  string location = 4;
+  
+  // Estimated delivery time
+  string estimated_delivery = 5;
+  
+  // Additional message
+  string message = 6;
+  
+  // Timestamp
+  string timestamp = 7;
+}
+
+// Query types for fulfillment
+enum FulfillmentQueryType {
+  STATUS_CHECK = 0;
+  LOCATION_UPDATE = 1;
+  CANCEL_REQUEST = 2;
+}
+
+// Update types for fulfillment
+enum FulfillmentUpdateType {
+  STATUS_CHANGED = 0;
+  LOCATION_CHANGED = 1;
+  ESTIMATED_DELIVERY_UPDATED = 2;
+  EXCEPTION = 3;
+}

@@ -18,11 +18,11 @@ public class UIService(KayaApiExplorerOptions options) : IUIService
             var assembly = Assembly.GetExecutingAssembly();
             
             // Read embedded resources directly
-            var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.index.html");
-            var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
-            var authJsContent = await ReadEmbeddedResourceAsync(assembly, "UI.auth.js");
-            var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.script.js");
-            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.icon.svg");
+            var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.index.html");
+            var cssContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.styles.css");
+            var authJsContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.auth.js");
+            var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.script.js");
+            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.icon.svg");
 
             // Inject theme configuration into the HTML
             var themeScript = GenerateThemeScript();

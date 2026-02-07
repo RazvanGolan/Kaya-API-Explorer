@@ -1,6 +1,6 @@
+using Demo.WebApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Demo.WebApi.Models;
 
 namespace Demo.WebApi.Controllers;
 

@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Demo.WebApi.Models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Demo.WebApi.Controllers;
 
@@ -234,9 +234,7 @@ public class NotificationsController : ControllerBase
 
         if (userId.HasValue)
         {
-            filteredNotifications = filteredNotifications
-                .Where(n => n.UserId == userId.Value)
-                .ToList();
+            filteredNotifications = [.. filteredNotifications.Where(n => n.UserId == userId.Value)];
         }
 
         var statistics = new NotificationStatistics

@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Reflection;
+using System.Text.Json;
 using Kaya.ApiExplorer.Models;
 
 namespace Kaya.ApiExplorer.Helpers;
@@ -103,7 +105,7 @@ public static class ReflectionHelper
                    genericTypeDefinition == typeof(IReadOnlyList<>);
         }
         
-        return typeof(System.Collections.IEnumerable).IsAssignableFrom(type) && type != typeof(string);
+        return typeof(IEnumerable).IsAssignableFrom(type) && type != typeof(string);
     }
 
     private static bool IsNullableType(Type type)
@@ -295,7 +297,7 @@ public static class ReflectionHelper
                         try
                         {
                             var nestedExample = GenerateExampleFromSchema(underlyingType, schemas, processedTypes);
-                            var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                            var parsedExample = JsonSerializer.Deserialize<object>(nestedExample);
                             example[property.Name] = parsedExample ?? new { };
                         }
                         catch
@@ -317,7 +319,7 @@ public static class ReflectionHelper
                     var nestedExample = GenerateExampleFromSchema(underlyingType, schemas, processedTypes);
                     try
                     {
-                        var parsedExample = System.Text.Json.JsonSerializer.Deserialize<object>(nestedExample);
+                        var parsedExample = JsonSerializer.Deserialize<object>(nestedExample);
                         example[property.Name] = parsedExample ?? new { };
                     }
                     catch
@@ -332,10 +334,10 @@ public static class ReflectionHelper
             }
         }
 
-        return System.Text.Json.JsonSerializer.Serialize(example, new System.Text.Json.JsonSerializerOptions 
+        return JsonSerializer.Serialize(example, new JsonSerializerOptions 
         { 
             WriteIndented = true,
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
     }
 
@@ -385,7 +387,7 @@ public static class ReflectionHelper
             try
             {
                 var exampleJson = GenerateExampleFromSchema(underlyingType, schemas, nestedProcessedTypes);
-                return System.Text.Json.JsonSerializer.Deserialize<object>(exampleJson) ?? new { };
+                return JsonSerializer.Deserialize<object>(exampleJson) ?? new { };
             }
             catch
             {

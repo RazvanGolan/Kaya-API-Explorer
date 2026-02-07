@@ -1,8 +1,8 @@
-using Kaya.ApiExplorer.Services;
 using Kaya.ApiExplorer.Models;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.SignalR;
+using Kaya.ApiExplorer.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kaya.ApiExplorer.Tests;
 

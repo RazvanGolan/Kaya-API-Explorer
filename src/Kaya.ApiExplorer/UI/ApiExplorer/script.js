@@ -6,6 +6,27 @@ const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
 
+// Auto-resize textarea helper
+function autoResizeTextarea(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// Setup auto-resize for textareas in a container
+function setupTextareaAutoResize(container) {
+  const textareas = container ? container.querySelectorAll('.body-textarea, .auth-textarea, textarea') : document.querySelectorAll('.body-textarea, .auth-textarea, textarea');
+  textareas.forEach(textarea => {
+    // Remove existing listener to avoid duplicates
+    textarea.removeEventListener('input', textarea._autoResizeHandler);
+    // Create and store the handler
+    textarea._autoResizeHandler = () => autoResizeTextarea(textarea);
+    textarea.addEventListener('input', textarea._autoResizeHandler);
+    // Initial resize for prefilled content
+    autoResizeTextarea(textarea);
+  });
+}
+
 function generateCurlCode(url, method, headers, body) {
   let curlCommand = `curl -X ${method.toUpperCase()} "${url}"`;
   
@@ -621,6 +642,7 @@ function doesEndpointMatchQuery(endpoint, query) {
 function renderControllers() {
   const container = document.getElementById("controllersList")
   container.innerHTML = ""
+  const query = document.getElementById("searchInput").value.toLowerCase().trim()
 
   controllers.forEach((controller) => {
     const card = document.createElement("div")
@@ -636,6 +658,19 @@ function renderControllers() {
             <p>${controller.description}</p>
             <div class="method-badges">${badges}</div>
         `
+
+    if (query) {
+      const hasMatchingEndpoint = controller.endpoints.some(endpoint => 
+        doesEndpointMatchQuery(endpoint, query)
+      )
+      const title = controller.name.toLowerCase()
+      const description = controller.description.toLowerCase()
+      const hasMatchingController = title.includes(query) || description.includes(query)
+
+      if (!hasMatchingEndpoint && !hasMatchingController) {
+        card.style.display = "none"
+      }
+    }
 
     container.appendChild(card)
   })
@@ -1080,6 +1115,10 @@ function switchTab(event, endpointId, tabName) {
   })
 
   document.getElementById(`${endpointId}-${tabName}`).classList.add("active")
+  
+  // Auto-resize textareas in the newly visible tab
+  const activeTab = document.getElementById(`${endpointId}-${tabName}`);
+  if (activeTab) setupTextareaAutoResize(activeTab);
 }
 
 function copyToClipboard(button) {
@@ -1365,6 +1404,8 @@ function switchBodyEditorMode() {
     
     jsonEditor.style.display = 'block';
     keyValueEditor.style.display = 'none';
+    // Auto-resize the JSON editor
+    autoResizeTextarea(jsonEditor);
   } else {
     try {
       const jsonData = JSON.parse(jsonEditor.value || '{}');
@@ -1395,6 +1436,8 @@ function switchTryItOutBodyEditorMode(jsonEditorId, keyValueEditorId) {
     
     jsonEditor.style.display = 'block';
     keyValueEditor.style.display = 'none';
+    // Auto-resize the JSON editor
+    autoResizeTextarea(jsonEditor);
   } else {
     try {
       const jsonData = JSON.parse(jsonEditor.value || '{}');
@@ -1796,7 +1839,10 @@ function buildRequestBuilderExportData() {
 }
 
 function showModal(modalId) {
-  document.getElementById(modalId).classList.add("show")
+  const modal = document.getElementById(modalId);
+  modal.classList.add("show");
+  // Auto-resize textareas in the modal
+  setupTextareaAutoResize(modal);
 }
 
 function hideModal(modalId) {
@@ -1815,6 +1861,10 @@ function switchRequestTab(tabName) {
   })
 
   document.getElementById(`${tabName}-tab`).classList.add("active")
+  
+  // Auto-resize textareas in the newly visible tab
+  const activeTab = document.getElementById(`${tabName}-tab`);
+  if (activeTab) setupTextareaAutoResize(activeTab);
 }
 
 // Initialize the application
@@ -1829,7 +1879,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   renderHeaders()
 
-  // Show SignalR Debug button if enabled
+  // Show SignalR Explorer button if enabled
   const config = window.KayaApiExplorerConfig || {};
   if (config.signalREnabled) {
     const signalRBtn = document.getElementById("signalRDebugBtn");

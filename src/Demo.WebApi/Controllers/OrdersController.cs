@@ -1,6 +1,6 @@
+using Demo.WebApi.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Demo.WebApi.Models;
 
 namespace Demo.WebApi.Controllers;
 
@@ -114,7 +114,7 @@ public class OrdersController : ControllerBase
             OrderNumber = $"ORD-{DateTime.UtcNow:yyyyMMdd}-{_nextOrderId:D6}",
             Status = OrderStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            Items = request.Items.Select(item => new OrderItem
+            Items = [.. request.Items.Select(item => new OrderItem
             {
                 Id = item.ProductId,
                 ProductId = item.ProductId,
@@ -123,7 +123,7 @@ public class OrdersController : ControllerBase
                 Quantity = item.Quantity,
                 TotalPrice = 29.99m * item.Quantity,
                 ProductOptions = item.ProductOptions
-            }).ToList(),
+            })],
             Shipping = request.Shipping,
             Billing = request.Billing,
             Totals = new OrderTotals

@@ -1,8 +1,7 @@
-using Xunit;
-using Kaya.ApiExplorer.Services;
 using Kaya.ApiExplorer.Models;
-using Microsoft.Extensions.DependencyInjection;
+using Kaya.ApiExplorer.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Kaya.ApiExplorer.Tests;
 

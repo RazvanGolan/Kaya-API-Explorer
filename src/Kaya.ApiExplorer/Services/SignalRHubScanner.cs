@@ -1,8 +1,9 @@
 using System.Reflection;
+using Kaya.ApiExplorer.Helpers;
+using Kaya.ApiExplorer.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
-using Kaya.ApiExplorer.Models;
-using Kaya.ApiExplorer.Helpers;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Kaya.ApiExplorer.Services;
@@ -68,7 +69,7 @@ public class SignalRHubScanner : ISignalRHubScanner
                 foreach (var endpoint in dataSource.Endpoints)
                 {
                     // Check if this is a hub endpoint
-                    var hubMetadata = endpoint.Metadata.GetMetadata<Microsoft.AspNetCore.SignalR.HubMetadata>();
+                    var hubMetadata = endpoint.Metadata.GetMetadata<HubMetadata>();
                     if (hubMetadata is null) 
                         continue;
                     

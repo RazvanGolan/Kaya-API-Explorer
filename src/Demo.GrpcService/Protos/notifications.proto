@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package notifications;
+
+option csharp_namespace = "Demo.GrpcService";
+
+// Notification service for sending and managing notifications
+service NotificationService {
+  // Send a single notification (Unary)
+  rpc SendNotification(SendNotificationRequest) returns (NotificationResponse);
+  
+  // Subscribe to notifications stream (Server Streaming)
+  rpc SubscribeToNotifications(SubscribeRequest) returns (stream NotificationMessage);
+  
+  // Batch send notifications (Client Streaming)
+  rpc BatchSendNotifications(stream SendNotificationRequest) returns (BatchNotificationResponse);
+  
+  // Real-time notification bidirectional chat (Bidirectional Streaming)
+  rpc NotificationChat(stream ChatMessage) returns (stream ChatMessage);
+}
+
+// Send notification request
+message SendNotificationRequest {
+  // Recipient user ID
+  string user_id = 1;
+  
+  // Notification title
+  string title = 2;
+  
+  // Notification body
+  string body = 3;
+  
+  // Notification type
+  NotificationType type = 4;
+  
+  // Priority
+  Priority priority = 5;
+  
+  // Optional data payload
+  map<string, string> data = 6;
+}
+
+// Notification response
+message NotificationResponse {
+  // Notification ID
+  string notification_id = 1;
+  
+  // Status
+  string status = 2;
+  
+  // Sent timestamp
+  string sent_at = 3;
+  
+  // Delivery status
+  DeliveryStatus delivery_status = 4;
+}
+
+// Subscribe request
+message SubscribeRequest {
+  // User ID to subscribe
+  string user_id = 1;
+  
+  // Filter by notification types
+  repeated NotificationType types = 2;
+  
+  // Minimum priority
+  Priority min_priority = 3;
+}
+
+// Notification message (streamed)
+message NotificationMessage {
+  // Notification ID
+  string notification_id = 1;
+  
+  // User ID
+  string user_id = 2;
+  
+  // Title
+  string title = 3;
+  
+  // Body
+  string body = 4;
+  
+  // Type
+  NotificationType type = 5;
+  
+  // Priority
+  Priority priority = 6;
+  
+  // Timestamp
+  string timestamp = 7;
+  
+  // Is read
+  bool is_read = 8;
+}
+
+// Batch notification response
+message BatchNotificationResponse {
+  // Total sent
+  int32 total_sent = 1;
+  
+  // Successful sends
+  int32 successful = 2;
+  
+  // Failed sends
+  int32 failed = 3;
+  
+  // Notification IDs
+  repeated string notification_ids = 4;
+}
+
+// Chat message for bidirectional streaming
+message ChatMessage {
+  // Message ID
+  string message_id = 1;
+  
+  // From user
+  string from_user = 2;
+  
+  // To user
+  string to_user = 3;
+  
+  // Message content
+  string content = 4;
+  
+  // Timestamp
+  string timestamp = 5;
+  
+  // Message type
+  ChatMessageType message_type = 6;
+}
+
+// Notification types
+enum NotificationType {
+  INFO = 0;
+  WARNING = 1;
+  ERROR = 2;
+  SUCCESS = 3;
+  PROMOTION = 4;
+  ORDER_UPDATE = 5;
+  SYSTEM = 6;
+}
+
+// Priority levels
+enum Priority {
+  LOW = 0;
+  NORMAL = 1;
+  HIGH = 2;
+  URGENT = 3;
+}
+
+// Delivery status
+enum DeliveryStatus {
+  PENDING = 0;
+  SENT = 1;
+  DELIVERED = 2;
+  FAILED = 3;
+  READ = 4;
+}
+
+// Chat message types
+enum ChatMessageType {
+  TEXT = 0;
+  SYSTEM_MESSAGE = 1;
+  TYPING_INDICATOR = 2;
+  READ_RECEIPT = 3;
+}

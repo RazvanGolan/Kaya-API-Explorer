@@ -1,6 +1,6 @@
+using Kaya.ApiExplorer.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Kaya.ApiExplorer.Helpers;
 
 namespace Kaya.ApiExplorer.Tests;
 
@@ -267,7 +267,7 @@ public class AttributeHelperTests
         // Note: NOT passing the controller type as fallback
 
         // Act
-        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method, null);
+        var (requiresAuth, roles) = AttributeHelper.GetAuthorizationInfo(method);
 
         // Assert
         Assert.False(requiresAuth); // Method itself has no [Authorize], and no fallback provided

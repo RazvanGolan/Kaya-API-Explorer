@@ -19,13 +19,13 @@ public class SignalRUIService(KayaApiExplorerOptions options) : ISignalRUIServic
             
             // Read embedded resources for SignalR UI
             var htmlContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.html");
-            var mainCssContent = await ReadEmbeddedResourceAsync(assembly, "UI.styles.css");
+            var mainCssContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.styles.css");
             var signalRCssContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.css");
-            var authJsContent = await ReadEmbeddedResourceAsync(assembly, "UI.auth.js");
+            var authJsContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.auth.js");
             var jsContent = await ReadEmbeddedResourceAsync(assembly, "UI.SignalR.signalr-debug.js");
             
             // Get the icon from main UI
-            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.icon.svg");
+            var favIconContent = await ReadEmbeddedResourceAsync(assembly, "UI.ApiExplorer.icon.svg");
             var svgBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(favIconContent));
 
             // Inject theme configuration into the HTML
