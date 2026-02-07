@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package products;
+
+option csharp_namespace = "Demo.GrpcService";
+
+// Product catalog service
+service ProductService {
+  // Get a single product by ID (Unary)
+  rpc GetProduct(GetProductRequest) returns (ProductResponse);
+  
+  // Search products with filters (Server Streaming)
+  rpc SearchProducts(SearchProductsRequest) returns (stream ProductResponse);
+  
+  // Batch create/update products (Client Streaming)
+  rpc ImportProducts(stream ProductImport) returns (ImportProductsResponse);
+  
+  // Real-time product price sync (Bidirectional Streaming)
+  rpc SyncPrices(stream PriceSyncRequest) returns (stream PriceSyncResponse);
+}
+
+// Get product request
+message GetProductRequest {
+  // Product ID
+  string product_id = 1;
+}
+
+// Search products request
+message SearchProductsRequest {
+  // Search query
+  string query = 1;
+  
+  // Category filter
+  string category = 2;
+  
+  // Minimum price
+  double min_price = 3;
+  
+  // Maximum price
+  double max_price = 4;
+  
+  // Maximum results
+  int32 max_results = 5;
+}
+
+// Product response
+message ProductResponse {
+  // Product ID
+  string product_id = 1;
+  
+  // Product name
+  string name = 2;
+  
+  // Description
+  string description = 3;
+  
+  // Category
+  string category = 4;
+  
+  // Price
+  double price = 5;
+  
+  // Stock quantity
+  int32 stock_quantity = 6;
+  
+  // Image URL
+  string image_url = 7;
+  
+  // Created timestamp
+  string created_at = 8;
+  
+  // Tags
+  repeated string tags = 9;
+}
+
+// Product import message for batch operations
+message ProductImport {
+  // Import batch number
+  int32 batch_number = 1;
+  
+  // Product ID (leave empty for new products)
+  string product_id = 2;
+  
+  // Product name
+  string name = 3;
+  
+  // Description
+  string description = 4;
+  
+  // Category
+  string category = 5;
+  
+  // Price
+  double price = 6;
+  
+  // Stock quantity
+  int32 stock_quantity = 7;
+  
+  // Tags
+  repeated string tags = 8;
+}
+
+// Import products response
+message ImportProductsResponse {
+  // Products created
+  int32 products_created = 1;
+  
+  // Products updated
+  int32 products_updated = 2;
+  
+  // Product IDs affected
+  repeated string product_ids = 3;
+  
+  // Any errors encountered
+  repeated string errors = 4;
+}
+
+// Price sync request (client sends)
+message PriceSyncRequest {
+  // Request type
+  PriceSyncType type = 1;
+  
+  // Product ID
+  string product_id = 2;
+  
+  // New price (for UPDATE type)
+  double new_price = 3;
+  
+  // Reason for price change
+  string reason = 4;
+}
+
+// Price sync response (server sends)
+message PriceSyncResponse {
+  // Response type
+  PriceSyncType type = 1;
+  
+  // Product ID
+  string product_id = 2;
+  
+  // Current price
+  double current_price = 3;
+  
+  // Old price (for updates)
+  double old_price = 4;
+  
+  // Timestamp
+  string timestamp = 5;
+  
+  // Message
+  string message = 6;
+}
+
+// Price sync types
+enum PriceSyncType {
+  QUERY = 0;
+  UPDATE = 1;
+  CONFIRM = 2;
+}

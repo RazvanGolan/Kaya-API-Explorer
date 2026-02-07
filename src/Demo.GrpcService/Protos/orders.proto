@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package orders;
 
-option csharp_namespace = "Demo.GrpcOrdersService";
+option csharp_namespace = "Demo.GrpcService";
 
 // Order service for managing customer orders
 service OrderService {

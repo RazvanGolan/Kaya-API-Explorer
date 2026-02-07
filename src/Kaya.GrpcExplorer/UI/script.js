@@ -182,9 +182,7 @@ function renderServices() {
         return
     }
     
-    // Get current search query to maintain filter state
-    const searchInput = document.getElementById('searchInput')
-    const query = searchInput ? searchInput.value.toLowerCase() : ''
+    const query = document.getElementById('searchInput').value.toLowerCase().trim()
     
     services.forEach(service => {
         const card = document.createElement('div')
@@ -207,11 +205,8 @@ function renderServices() {
             <div class="method-type-badges">${badges}</div>
         `
         
-        if (query) {
-            const text = card.textContent.toLowerCase()
-            if (!text.includes(query)) {
-                card.style.display = 'none'
-            }
+        if (query && !shouldServiceBeVisible(service, query)) {
+            card.style.display = 'none'
         }
         
         container.appendChild(card)
@@ -231,8 +226,18 @@ function renderMethods() {
     const container = document.getElementById('methodsList')
     container.innerHTML = ''
     
-    service.methods.forEach((method, index) => {
-        const methodId = `${selectedService}-${index}`
+    const query = document.getElementById('searchInput').value.toLowerCase().trim()
+    
+    let methodsToShow = service.methods
+    if (query) {
+        methodsToShow = service.methods.filter(method => 
+            doesMethodMatchQuery(method, query)
+        )
+    }
+    
+    methodsToShow.forEach((method, index) => {
+        const originalIndex = service.methods.indexOf(method)
+        const methodId = `${selectedService}-${originalIndex}`
         const isExpanded = expandedMethods.includes(methodId)
         
         const card = document.createElement('div')
@@ -257,12 +262,16 @@ function renderMethods() {
                 </div>
             </div>
             <div class="method-content ${isExpanded ? 'expanded' : ''}" id="content-${methodId}">
-                ${renderMethodTabs(method, methodId, index)}
+                ${renderMethodTabs(method, methodId, originalIndex)}
             </div>
         `
         
         container.appendChild(card)
     })
+    
+    if (query && methodsToShow.length === 0) {
+        container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 2rem;">No methods match your search query.</p>'
+    }
 }
 
 function renderMethodTabs(method, methodId, index) {
@@ -318,27 +327,14 @@ function renderMessageSchema(schema, label) {
 
 function renderTryItOut(method, index) {
     const methodIdentifier = `${selectedService}-${index}`
-    const isStreaming = method.methodType === 2 || method.methodType === 3 // Client or Bidi streaming
-    const streamingHint = isStreaming ? `
-        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #3b82f6;">
-            <strong>💡 Streaming Tip:</strong> Send an <strong>array</strong> of messages for streaming:
-            <code style="background: var(--bg-surface); padding: 2px 6px; border-radius: 3px; margin-left: 4px;">[{...}, {...}, ...]</code>
-            or a single message <code style="background: var(--bg-surface); padding: 2px 6px; border-radius: 3px;">{...}</code>
-        </div>
-    ` : ''
-    
-    const exampleJson = isStreaming && method.requestType.exampleJson ? 
-        `[${method.requestType.exampleJson}, ${method.requestType.exampleJson}]` : 
-        method.requestType.exampleJson
     
     return `
         <div class="request-builder">
             <h4 style="margin-bottom: 12px;">Request Body</h4>
-            ${streamingHint}
             <textarea id="request-${methodIdentifier}" 
                       class="body-textarea" 
                       style="width: 100%; height: 200px; font-family: monospace;"
-                      placeholder="Enter request JSON${isStreaming ? ' (array for multiple messages)' : ''}">${exampleJson}</textarea>
+                      placeholder="Enter request JSON">${method.requestType.exampleJson}</textarea>
             
             <div class="metadata-editor">
                 <h4 style="margin-bottom: 8px;">Metadata (optional)</h4>
@@ -543,21 +539,57 @@ function getMethodTypeDisplay(badgeClass) {
     }
 }
 
+function doesMethodMatchQuery(method, query) {
+    if (!query || !query.trim()) return true
+    
+    const lowerQuery = query.toLowerCase()
+    const methodName = method.methodName.toLowerCase()
+    const methodDescription = (method.description || '').toLowerCase()
+    
+    return methodName.includes(lowerQuery) || methodDescription.includes(lowerQuery)
+}
+
+function shouldServiceBeVisible(service, query) {
+    if (!query || !query.trim()) return true
+    
+    return service.methods.some(method => doesMethodMatchQuery(method, query))
+}
+
 function filterServices() {
-    const query = document.getElementById('searchInput').value.toLowerCase()
+    const query = document.getElementById('searchInput').value.toLowerCase().trim()
     const clearBtn = document.getElementById('clearSearchBtn')
     
-    if (query.trim()) {
+    if (query) {
         clearBtn.style.display = 'flex'
     } else {
         clearBtn.style.display = 'none'
     }
     
-    const cards = document.querySelectorAll('.service-card')
-    cards.forEach(card => {
-        const text = card.textContent.toLowerCase()
-        card.style.display = text.includes(query) ? 'block' : 'none'
-    })
+    const visibleServices = query ? services.filter(s => shouldServiceBeVisible(s, query)) : services
+    
+    if (query) {
+        if (visibleServices.length === 1) {
+            if (selectedService !== visibleServices[0].serviceName) {
+                selectedService = visibleServices[0].serviceName
+                expandedMethods = []
+            }
+        } else if (visibleServices.length > 1) {
+            const isCurrentSelectionVisible = visibleServices.some(s => s.serviceName === selectedService)
+            if (!isCurrentSelectionVisible) {
+                selectedService = visibleServices[0].serviceName
+                expandedMethods = []
+            }
+        }
+        renderServices()
+    } else {
+        if (!selectedService && services.length > 0) {
+            selectedService = services[0].serviceName
+            expandedMethods = []
+        }
+        renderServices()
+    }
+    
+    renderMethods()
 }
 
 function clearSearch() {

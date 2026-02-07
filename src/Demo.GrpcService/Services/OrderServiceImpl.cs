@@ -1,6 +1,6 @@
 using Grpc.Core;
 
-namespace Demo.GrpcOrdersService.Services;
+namespace Demo.GrpcService.Services;
 
 /// <summary>
 /// Implementation of the OrderService gRPC service

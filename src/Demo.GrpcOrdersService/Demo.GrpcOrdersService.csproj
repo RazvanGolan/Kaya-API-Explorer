@@ -9,12 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
     <PackageReference Include="Grpc.AspNetCore.Server.Reflection" Version="2.76.0" />
-    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Protobuf Include="Protos\orders.proto" GrpcServices="Server" />
-    <Protobuf Include="Protos\inventory.proto" GrpcServices="Client" />
   </ItemGroup>
 
   <ItemGroup>

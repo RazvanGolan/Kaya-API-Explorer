@@ -1,4 +1,4 @@
-using Demo.GrpcOrdersService.Services;
+using Demo.GrpcService.Services;
 using Kaya.GrpcExplorer.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +30,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapGrpcService<OrderServiceImpl>();
+app.MapGrpcService<ProductServiceImpl>();
+app.MapGrpcService<NotificationServiceImpl>();
 
-app.MapGet("/", () => "Demo gRPC Orders Service is running. " +
+app.MapGet("/", () => "Demo gRPC Service is running with 3 services (Orders, Products, Notifications). " +
                       "Use gRPC Explorer at /grpc-explorer or connect via gRPC client.");
 
 app.Run();
