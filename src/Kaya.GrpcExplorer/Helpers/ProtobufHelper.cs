@@ -72,10 +72,10 @@ public static class ProtobufHelper
     {
         return field.FieldType switch
         {
-            FieldType.Double or FieldType.Float => 0.0,
+            FieldType.Double or FieldType.Float => 12.34,
             FieldType.Int32 or FieldType.Int64 or FieldType.UInt32 or FieldType.UInt64 or 
             FieldType.SInt32 or FieldType.SInt64 or FieldType.Fixed32 or FieldType.Fixed64 or 
-            FieldType.SFixed32 or FieldType.SFixed64 => 0,
+            FieldType.SFixed32 or FieldType.SFixed64 => 123,
             FieldType.Bool => false,
             FieldType.String => "string",
             FieldType.Bytes => "base64EncodedData",
@@ -99,8 +99,8 @@ public static class ProtobufHelper
                 "Timestamp" => "2024-01-01T00:00:00Z",
                 "Duration" => "3600s",
                 "StringValue" or "BytesValue" => "value",
-                "Int32Value" or "Int64Value" or "UInt32Value" or "UInt64Value" => 0,
-                "FloatValue" or "DoubleValue" => 0.0,
+                "Int32Value" or "Int64Value" or "UInt32Value" or "UInt64Value" => 123,
+                "FloatValue" or "DoubleValue" => 12.34,
                 "BoolValue" => false,
                 _ => new { }
             };
@@ -121,9 +121,14 @@ public static class ProtobufHelper
     {
         return field.FieldType switch
         {
-            FieldType.String => "string",
-            FieldType.Int32 or FieldType.Int64 => 0,
+            FieldType.Double or FieldType.Float => 12.34,
+            FieldType.Int32 or FieldType.Int64 or FieldType.UInt32 or FieldType.UInt64 or 
+            FieldType.SInt32 or FieldType.SInt64 or FieldType.Fixed32 or FieldType.Fixed64 or 
+            FieldType.SFixed32 or FieldType.SFixed64 => 123,
             FieldType.Bool => false,
+            FieldType.String => "string",
+            FieldType.Bytes => "base64EncodedData",
+            FieldType.Enum => field.EnumType.Values[0].Name,
             _ => null
         };
     }

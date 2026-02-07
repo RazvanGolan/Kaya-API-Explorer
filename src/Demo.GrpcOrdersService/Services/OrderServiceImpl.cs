@@ -167,7 +167,6 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
                 if (request.Status == OrderStatus.Pending || order.Status == request.Status)
                 {
                     await responseStream.WriteAsync(order);
-                    await Task.Delay(500); // Simulate delay
                 }
             }
         }
@@ -176,8 +175,6 @@ public class OrderServiceImpl(ILogger<OrderServiceImpl> logger) : OrderService.O
         var random = new Random();
         for (int i = 0; i < 5; i++)
         {
-            await Task.Delay(2000);
-
             if (context.CancellationToken.IsCancellationRequested)
             {
                 break;

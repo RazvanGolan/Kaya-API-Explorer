@@ -46,20 +46,47 @@ public static class DynamicGrpcHelper
             if (parseMethod is not null)
             {
                 var genericParse = parseMethod.MakeGenericMethod(generatedType);
-                var message = genericParse.Invoke(jsonParser, [json]);
-                if (message is IMessage result)
+                try
                 {
-                    return result;
+                    var message = genericParse.Invoke(jsonParser, [json]);
+                    if (message is IMessage result)
+                    {
+                        return result;
+                    }
+                }
+                catch (TargetInvocationException tie) when (tie.InnerException is not null)
+                {
+                    // Extract the actual parsing error from the reflection invocation
+                    throw tie.InnerException;
                 }
             }
 
             throw new InvalidOperationException($"Could not parse JSON for generated type {generatedType.FullName}");
         }
+        catch (InvalidOperationException ioe) when (ioe.Message.Contains("enum") || ioe.Message.Contains("Unknown field"))
+        {
+            // Re-throw validation errors as-is for better error messages
+            throw new InvalidOperationException(
+                $"JSON validation failed: {ioe.Message}", ioe);
+        }
         catch (Exception ex)
         {
+            // Extract the most relevant error message
+            var errorMessage = GetMostRelevantErrorMessage(ex);
             throw new InvalidOperationException(
-                $"Failed to parse JSON for generated type {generatedType.FullName}. JSON: {json}", ex);
+                $"Failed to parse JSON: {errorMessage}", ex);
         }
+    }
+
+    private static string GetMostRelevantErrorMessage(Exception ex)
+    {
+        var current = ex;
+        while (current.InnerException is not null)
+        {
+            current = current.InnerException;
+        }
+        
+        return !string.IsNullOrWhiteSpace(current.Message) ? current.Message : ex.Message;
     }
 
     /// <summary>
@@ -192,8 +219,15 @@ public static class DynamicGrpcHelper
             case FieldType.Enum:
                 if (value.ValueKind == JsonValueKind.String)
                 {
-                    var enumValue = field.EnumType.FindValueByName(value.GetString() ?? "");
-                    output.WriteEnum(enumValue?.Number ?? 0);
+                    var enumString = value.GetString() ?? "";
+                    var enumValue = field.EnumType.FindValueByName(enumString);
+                    if (enumValue is null)
+                    {
+                        var validValues = string.Join(", ", field.EnumType.Values.Select(v => v.Name));
+                        throw new InvalidOperationException(
+                            $"Invalid value '{enumString}' for enum field '{field.JsonName}'. Valid values are: {validValues}");
+                    }
+                    output.WriteEnum(enumValue.Number);
                 }
                 else
                 {
