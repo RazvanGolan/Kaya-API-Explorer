@@ -348,24 +348,27 @@ public static class DynamicGrpcHelper
             return null;
         }
 
+        // Serialize all file descriptors (including dependencies) to ByteStrings
+        // and build them together so cross-file references resolve correctly
+        var byteStrings = new List<ByteString>();
         foreach (var fileProto in fileDescriptorSet.File)
         {
             using var ms = new MemoryStream();
             using var cos = new CodedOutputStream(ms);
             fileProto.WriteTo(cos);
             cos.Flush();
+            byteStrings.Add(ByteString.CopyFrom(ms.ToArray()));
+        }
 
-            var fileDescriptors = FileDescriptor.BuildFromByteStrings(
-                [ByteString.CopyFrom(ms.ToArray())]);
+        var fileDescriptors = FileDescriptor.BuildFromByteStrings(byteStrings);
 
-            foreach (var fd in fileDescriptors)
+        foreach (var fd in fileDescriptors)
+        {
+            foreach (var service in fd.Services)
             {
-                foreach (var service in fd.Services)
+                if (service.FullName == serviceName)
                 {
-                    if (service.FullName == serviceName)
-                    {
-                        return service.Methods.FirstOrDefault(m => m.Name == methodName);
-                    }
+                    return service.Methods.FirstOrDefault(m => m.Name == methodName);
                 }
             }
         }

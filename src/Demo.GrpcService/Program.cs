@@ -4,55 +4,51 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Kestrel to support HTTP/2 on insecure connections (for gRPC over HTTP)
+const int grpcPort = 5000;
+const int kayaUiPort = 5010;
+
+// Configure Kestrel endpoints
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // HTTP endpoint - support both HTTP/1.1 (for browser) and HTTP/2 (for gRPC)
-    options.ListenLocalhost(5000, listenOptions =>
+    // HTTP/2 cleartext (h2c) on the main port ΓÇö required for gRPC without TLS.
+    // Note: Without TLS, Kestrel only serves HTTP/2 when explicitly set to Http2.
+    // Http1AndHttp2 without TLS falls back to HTTP/1.1 only (no ALPN negotiation).
+    options.ListenLocalhost(grpcPort, o => o.Protocols = HttpProtocols.Http2);
+
+    // In development, add an HTTP/1.1 endpoint for browser access to Kaya gRPC Explorer.
+    // Browsers don't support HTTP/2 cleartext (h2c), so they need a separate HTTP/1.1 port.
+    if (builder.Environment.IsDevelopment())
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-    });
-    
-    // HTTPS endpoint (port 5001) - only if configured
-    var httpsUrl = builder.Configuration["ASPNETCORE_URLS"];
-    if (string.IsNullOrEmpty(httpsUrl) || httpsUrl.Contains("https"))
-    {
-        options.ListenLocalhost(5001, listenOptions =>
-        {
-            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-            listenOptions.UseHttps();
-        });
+        options.ListenLocalhost(kayaUiPort, o => o.Protocols = HttpProtocols.Http1);
     }
 });
 
 // Add gRPC services
 builder.Services.AddGrpc();
 
-// Add gRPC reflection (required for Kaya gRPC Explorer)
-builder.Services.AddGrpcReflection();
-
-// Add Kaya gRPC Explorer
-builder.Services.AddKayaGrpcExplorer(options =>
+// Add Kaya gRPC Explorer (in development only)
+if (builder.Environment.IsDevelopment())
 {
-    options.Middleware.RoutePrefix = "/grpc-explorer";
-    options.Middleware.AllowInsecureConnections = true;
-});
+    builder.Services.AddKayaGrpcExplorer(options =>
+    {
+        options.Middleware.RoutePrefix = "/grpc-explorer";
+        options.Middleware.AllowInsecureConnections = true;
+        options.Middleware.DefaultServerAddress = $"localhost:{grpcPort}";
+    });
+}
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    // Enable gRPC reflection
-    app.MapGrpcReflectionService();
-    
-    // Enable Kaya gRPC Explorer
-    app.UseKayaGrpcExplorer();
-}
-
+// Map gRPC services
 app.MapGrpcService<OrderServiceImpl>();
 app.MapGrpcService<ProductServiceImpl>();
 app.MapGrpcService<NotificationServiceImpl>();
+
+// Enable Kaya gRPC Explorer in development
+if (app.Environment.IsDevelopment())
+{
+    app.UseKayaGrpcExplorer();
+}
 
 app.MapGet("/", () => "Demo gRPC Service is running with 3 services (Orders, Products, Notifications). " +
                       "Use gRPC Explorer at /grpc-explorer or connect via gRPC client.");

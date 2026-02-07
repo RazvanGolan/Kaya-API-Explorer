@@ -80,32 +80,29 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
             return null;
         }
 
-        // Build descriptor pool
-        var descriptorPool = new FileDescriptorSet();
-        foreach (var file in fileDescriptorSet.File)
-        {
-            descriptorPool.File.Add(file);
-        }
-
-        // Find the service in the descriptors
+        // Serialize all file descriptors to ByteStrings.
+        // The reflection response includes the requested file and all its transitive
+        // dependencies. BuildFromByteStrings needs them all, in dependency order
+        // (dependencies before dependents ΓÇö which is how the reflection server returns them).
+        var byteStrings = new List<ByteString>();
         foreach (var fileProto in fileDescriptorSet.File)
         {
             using var ms = new MemoryStream();
             using var cos = new CodedOutputStream(ms);
             fileProto.WriteTo(cos);
             cos.Flush();
-            
-            var fileDescriptors = FileDescriptor.BuildFromByteStrings(
-                [ByteString.CopyFrom(ms.ToArray())]);
+            byteStrings.Add(ByteString.CopyFrom(ms.ToArray()));
+        }
 
-            foreach (var fd in fileDescriptors)
+        var fileDescriptors = FileDescriptor.BuildFromByteStrings(byteStrings);
+
+        foreach (var fd in fileDescriptors)
+        {
+            foreach (var service in fd.Services)
             {
-                foreach (var service in fd.Services)
+                if (service.FullName == serviceName)
                 {
-                    if (service.FullName == serviceName)
-                    {
-                        return BuildServiceInfo(service);
-                    }
+                    return BuildServiceInfo(service);
                 }
             }
         }

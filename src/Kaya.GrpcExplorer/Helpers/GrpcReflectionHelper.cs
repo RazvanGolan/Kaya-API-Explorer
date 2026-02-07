@@ -53,7 +53,7 @@ public static class GrpcReflectionHelper
     }
 
     /// <summary>
-    /// Gets file descriptor for a service using reflection
+    /// Gets file descriptor for a service using reflection, including all transitive dependencies
     /// </summary>
     public static async Task<FileDescriptorSet?> GetFileDescriptorAsync(
         string serverAddress,
@@ -72,24 +72,43 @@ public static class GrpcReflectionHelper
                 FileContainingSymbol = serviceName
             });
 
-            FileDescriptorSet? result = null;
+            // Keyed by file Name as returned by the server
+            var resolvedFiles = new Dictionary<string, FileDescriptorProto>();
 
-            // Read response
             if (await call.ResponseStream.MoveNext())
             {
                 var response = call.ResponseStream.Current;
                 if (response.FileDescriptorResponse is not null)
                 {
-                    var descriptorSet = new FileDescriptorSet();
-                    foreach (var fileDescriptor in response.FileDescriptorResponse.FileDescriptorProto)
+                    foreach (var fd in response.FileDescriptorResponse.FileDescriptorProto)
                     {
-                        descriptorSet.File.Add(FileDescriptorProto.Parser.ParseFrom(fileDescriptor));
+                        var parsed = FileDescriptorProto.Parser.ParseFrom(fd);
+                        resolvedFiles.TryAdd(parsed.Name, parsed);
                     }
-                    result = descriptorSet;
                 }
             }
 
             await call.RequestStream.CompleteAsync();
+
+            if (resolvedFiles.Count is 0)
+            {
+                return null;
+            }
+
+            // Fix dependency name mismatches caused by ProtoRoot differences.
+            // E.g., a file imports "Protos/models.proto" but the server registered
+            // the file as just "models.proto". We rewrite dependency references
+            // to match the actual registered file names.
+            RewriteMismatchedDependencies(resolvedFiles);
+
+            // Build result in dependency order
+            var result = new FileDescriptorSet();
+            var added = new HashSet<string>();
+            foreach (var file in resolvedFiles.Values)
+            {
+                AddInDependencyOrder(file, resolvedFiles, result, added);
+            }
+
             return result;
         }
         finally
@@ -99,13 +118,82 @@ public static class GrpcReflectionHelper
     }
 
     /// <summary>
+    /// Rewrites dependency references that don't match any resolved file name.
+    /// Matches by basename (e.g., "Protos/models.proto" -> "models.proto").
+    /// </summary>
+    private static void RewriteMismatchedDependencies(Dictionary<string, FileDescriptorProto> resolvedFiles)
+    {
+        // Build a lookup: basename -> actual registered name
+        var baseNameLookup = new Dictionary<string, string>();
+        foreach (var name in resolvedFiles.Keys)
+        {
+            var baseName = Path.GetFileName(name);
+            baseNameLookup.TryAdd(baseName, name);
+        }
+
+        foreach (var file in resolvedFiles.Values)
+        {
+            for (var i = 0; i < file.Dependency.Count; i++)
+            {
+                var dep = file.Dependency[i];
+                // If this dependency doesn't match any resolved file by exact name,
+                // try to match by basename
+                if (!resolvedFiles.ContainsKey(dep))
+                {
+                    var depBaseName = Path.GetFileName(dep);
+                    if (baseNameLookup.TryGetValue(depBaseName, out var actualName))
+                    {
+                        file.Dependency[i] = actualName;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Adds a file descriptor to the result set, ensuring dependencies come first
+    /// </summary>
+    private static void AddInDependencyOrder(
+        FileDescriptorProto file,
+        Dictionary<string, FileDescriptorProto> allFiles,
+        FileDescriptorSet result,
+        HashSet<string> added)
+    {
+        if (!added.Add(file.Name))
+        {
+            return; // Already added
+        }
+
+        foreach (var dep in file.Dependency)
+        {
+            if (allFiles.TryGetValue(dep, out var depFile))
+            {
+                AddInDependencyOrder(depFile, allFiles, result, added);
+            }
+        }
+
+        result.File.Add(file);
+    }
+
+    /// <summary>
     /// Creates a gRPC channel with appropriate settings
     /// </summary>
     public static GrpcChannel CreateChannel(string serverAddress, bool allowInsecure = false)
     {
-        var url = serverAddress.StartsWith("http") 
-            ? serverAddress 
-            : $"https://{serverAddress}";
+        var hasExplicitScheme = serverAddress.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                             || serverAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+        string url;
+        if (hasExplicitScheme)
+        {
+            url = serverAddress;
+        }
+        else
+        {
+            // When allowInsecure is true, default to http:// for plain-text HTTP/2 connections
+            // Otherwise default to https://
+            url = allowInsecure ? $"http://{serverAddress}" : $"https://{serverAddress}";
+        }
 
         var channelOptions = new GrpcChannelOptions
         {
@@ -113,13 +201,18 @@ public static class GrpcReflectionHelper
             MaxSendMessageSize = 16 * 1024 * 1024 // 16 MB
         };
 
-        // Only configure custom handler if we need to bypass certificate validation
+        // Configure handler for insecure (plain HTTP) or untrusted TLS connections.
+        // SocketsHttpHandler is required for HTTP/2 cleartext (h2c) support on all platforms.
         if (allowInsecure)
         {
-            var httpHandler = new HttpClientHandler
+            var httpHandler = new SocketsHttpHandler
             {
-                ServerCertificateCustomValidationCallback = 
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                {
+                    // Accept any server certificate (self-signed, untrusted, etc.)
+                    RemoteCertificateValidationCallback = delegate { return true; }
+                },
+                EnableMultipleHttp2Connections = true
             };
             channelOptions.HttpHandler = httpHandler;
         }
