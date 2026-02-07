@@ -182,8 +182,23 @@ function renderHubsList(hubs) {
         return;
     }
 
-    hubsList.innerHTML = hubs.map(hub => `
-        <div class="hub-item" onclick="selectHub('${escapeHtml(hub.name)}')">
+    // Get current search query to maintain filter state
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+    hubsList.innerHTML = hubs.map(hub => {
+        let displayStyle = '';
+        if (searchTerm) {
+            const matchesSearch = hub.name.toLowerCase().includes(searchTerm) ||
+                                hub.path.toLowerCase().includes(searchTerm) ||
+                                hub.namespace.toLowerCase().includes(searchTerm);
+            if (!matchesSearch) {
+                displayStyle = ' style="display: none;"';
+            }
+        }
+        
+        return `
+        <div class="hub-item" onclick="selectHub('${escapeHtml(hub.name)}')"${displayStyle}>
             <div class="hub-item-header">
                 <span class="hub-name">
                     ${escapeHtml(hub.name)}
@@ -194,7 +209,8 @@ function renderHubsList(hubs) {
             </div>
             <div class="hub-path">${escapeHtml(hub.path)}</div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Select a hub

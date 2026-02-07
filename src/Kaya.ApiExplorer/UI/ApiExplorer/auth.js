@@ -1,6 +1,6 @@
 // Shared Authorization Module for Kaya API Explorer
 // This module provides authentication configuration and helper functions
-// Used by both the main API Explorer and SignalR Debug UI
+// Used by both the main API Explorer and SignalR Explorer UI
 
 let authConfig = {
   type: 'none',

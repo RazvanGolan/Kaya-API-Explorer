@@ -642,6 +642,7 @@ function doesEndpointMatchQuery(endpoint, query) {
 function renderControllers() {
   const container = document.getElementById("controllersList")
   container.innerHTML = ""
+  const query = document.getElementById("searchInput").value.toLowerCase().trim()
 
   controllers.forEach((controller) => {
     const card = document.createElement("div")
@@ -657,6 +658,19 @@ function renderControllers() {
             <p>${controller.description}</p>
             <div class="method-badges">${badges}</div>
         `
+
+    if (query) {
+      const hasMatchingEndpoint = controller.endpoints.some(endpoint => 
+        doesEndpointMatchQuery(endpoint, query)
+      )
+      const title = controller.name.toLowerCase()
+      const description = controller.description.toLowerCase()
+      const hasMatchingController = title.includes(query) || description.includes(query)
+
+      if (!hasMatchingEndpoint && !hasMatchingController) {
+        card.style.display = "none"
+      }
+    }
 
     container.appendChild(card)
   })
@@ -1865,7 +1879,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   renderHeaders()
 
-  // Show SignalR Debug button if enabled
+  // Show SignalR Explorer button if enabled
   const config = window.KayaApiExplorerConfig || {};
   if (config.signalREnabled) {
     const signalRBtn = document.getElementById("signalRDebugBtn");

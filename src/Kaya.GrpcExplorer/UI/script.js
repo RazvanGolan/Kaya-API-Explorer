@@ -182,9 +182,13 @@ function renderServices() {
         return
     }
     
+    // Get current search query to maintain filter state
+    const searchInput = document.getElementById('searchInput')
+    const query = searchInput ? searchInput.value.toLowerCase() : ''
+    
     services.forEach(service => {
         const card = document.createElement('div')
-        card.class = `service-card ${selectedService === service.serviceName ? 'active' : ''}`
+        card.className = `service-card ${selectedService === service.serviceName ? 'active' : ''}`
         card.onclick = () => selectService(service.serviceName)
         
         const methodTypeCounts = {}
@@ -202,6 +206,13 @@ function renderServices() {
             <p class="service-package">${service.package || 'default'}</p>
             <div class="method-type-badges">${badges}</div>
         `
+        
+        if (query) {
+            const text = card.textContent.toLowerCase()
+            if (!text.includes(query)) {
+                card.style.display = 'none'
+            }
+        }
         
         container.appendChild(card)
     })
