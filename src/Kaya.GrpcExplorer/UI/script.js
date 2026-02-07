@@ -93,7 +93,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     
     // Get config
     const config = window.KayaGrpcExplorerConfig || {}
-    currentServerAddress = sessionStorage.getItem('grpcServerAddress') || config.defaultServerAddress || 'localhost:5001'
+    currentServerAddress = sessionStorage.getItem('grpcServerAddress') || config.defaultServerAddress || window.location.host
     
     document.getElementById('serverAddress').value = currentServerAddress
     

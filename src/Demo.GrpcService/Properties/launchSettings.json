@@ -1,6 +1,15 @@
 {
   "profiles": {
-    "Demo.GrpcOrdersService": {
+    "Demo.GrpcOrdersService.Http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_PROTOCOLS": "Http1AndHttp2"
+      }
+    },
+    "Demo.GrpcOrdersService.Https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:5001",

@@ -1,7 +1,29 @@
 using Demo.GrpcService.Services;
 using Kaya.GrpcExplorer.Extensions;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Kestrel to support HTTP/2 on insecure connections (for gRPC over HTTP)
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // HTTP endpoint - support both HTTP/1.1 (for browser) and HTTP/2 (for gRPC)
+    options.ListenLocalhost(5000, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+    
+    // HTTPS endpoint (port 5001) - only if configured
+    var httpsUrl = builder.Configuration["ASPNETCORE_URLS"];
+    if (string.IsNullOrEmpty(httpsUrl) || httpsUrl.Contains("https"))
+    {
+        options.ListenLocalhost(5001, listenOptions =>
+        {
+            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+            listenOptions.UseHttps();
+        });
+    }
+});
 
 // Add gRPC services
 builder.Services.AddGrpc();
@@ -13,8 +35,7 @@ builder.Services.AddGrpcReflection();
 builder.Services.AddKayaGrpcExplorer(options =>
 {
     options.Middleware.RoutePrefix = "/grpc-explorer";
-    options.Middleware.DefaultServerAddress = "https://localhost:5001";
-    options.Middleware.AllowInsecureConnections = true; // For dev certs
+    options.Middleware.AllowInsecureConnections = true;
 });
 
 var app = builder.Build();
