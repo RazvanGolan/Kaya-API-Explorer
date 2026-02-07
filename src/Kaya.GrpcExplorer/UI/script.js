@@ -4,6 +4,27 @@ let selectedService = ""
 let expandedMethods = []
 let currentServerAddress = ""
 
+// Auto-resize textarea helper
+function autoResizeTextarea(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// Setup auto-resize for textareas in a container
+function setupTextareaAutoResize(container) {
+  const textareas = container ? container.querySelectorAll('.body-textarea, .auth-textarea, textarea') : document.querySelectorAll('.body-textarea, .auth-textarea, textarea');
+  textareas.forEach(textarea => {
+    // Remove existing listener to avoid duplicates
+    textarea.removeEventListener('input', textarea._autoResizeHandler);
+    // Create and store the handler
+    textarea._autoResizeHandler = () => autoResizeTextarea(textarea);
+    textarea.addEventListener('input', textarea._autoResizeHandler);
+    // Initial resize for prefilled content
+    autoResizeTextarea(textarea);
+  });
+}
+
 // Theme Management
 function initializeTheme() {
     const config = window.KayaGrpcExplorerConfig || { defaultTheme: 'light' }
@@ -42,6 +63,8 @@ function showModal(modalId) {
     const modal = document.getElementById(modalId)
     if (modal) {
         modal.classList.add('show')
+        // Auto-resize textareas in the modal
+        setupTextareaAutoResize(modal);
     }
 }
 
@@ -341,6 +364,10 @@ function switchTab(event, methodId, tabName) {
     })
     
     document.getElementById(`${methodId}-${tabName}`).classList.add('active')
+    
+    // Auto-resize textareas in the newly visible tab
+    const activeTab = document.getElementById(`${methodId}-${tabName}`);
+    if (activeTab) setupTextareaAutoResize(activeTab);
 }
 
 async function invokeMethod(serviceName, methodIndex) {
