@@ -64,8 +64,8 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
                {
                    GrpcMethodType.Unary => await InvokeUnaryAsync(channel, method, request.RequestJson, metadata),
                    GrpcMethodType.ServerStreaming => await InvokeServerStreamingAsync(channel, method, request.RequestJson, metadata),
-                   GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, request.StreamRequests ?? [], metadata),
-                   GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, request.StreamRequests ?? [], metadata),
+                   GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
+                   GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
                    _ => throw new NotSupportedException($"Method type {method.MethodType} not supported")
                };
 
@@ -244,6 +244,52 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
            StreamResponses = responseJsonList,
            StatusCode = "OK"
        };
+   }
+
+   /// <summary>
+   /// Prepares stream requests from either StreamRequests or RequestJson
+   /// </summary>
+   private List<string> PrepareStreamRequests(GrpcInvocationRequest request)
+   {
+       // If StreamRequests is provided and not empty, use it
+       if (request.StreamRequests is { Count: > 0 })
+       {
+           return request.StreamRequests;
+       }
+
+       // Otherwise, try to parse RequestJson
+       if (string.IsNullOrWhiteSpace(request.RequestJson))
+       {
+           return [];
+       }
+
+       try
+       {
+           var trimmed = request.RequestJson.Trim();
+           
+           // Check if it's a JSON array
+           if (trimmed.StartsWith('['))
+           {
+               // Parse as array of messages
+               var array = System.Text.Json.JsonDocument.Parse(trimmed);
+               var messages = new List<string>();
+               
+               foreach (var element in array.RootElement.EnumerateArray())
+               {
+                   messages.Add(element.GetRawText());
+               }
+               
+               return messages;
+           }
+           
+           // Otherwise treat as single message
+           return [request.RequestJson];
+       }
+       catch
+       {
+           // If parsing fails, treat as single message
+           return [request.RequestJson];
+       }
    }
 
    /// <summary>

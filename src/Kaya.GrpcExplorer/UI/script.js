@@ -318,14 +318,27 @@ function renderMessageSchema(schema, label) {
 
 function renderTryItOut(method, index) {
     const methodIdentifier = `${selectedService}-${index}`
+    const isStreaming = method.methodType === 2 || method.methodType === 3 // Client or Bidi streaming
+    const streamingHint = isStreaming ? `
+        <div style="background: var(--bg-secondary); padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; font-size: 13px; border-left: 3px solid #3b82f6;">
+            <strong>💡 Streaming Tip:</strong> Send an <strong>array</strong> of messages for streaming:
+            <code style="background: var(--bg-surface); padding: 2px 6px; border-radius: 3px; margin-left: 4px;">[{...}, {...}, ...]</code>
+            or a single message <code style="background: var(--bg-surface); padding: 2px 6px; border-radius: 3px;">{...}</code>
+        </div>
+    ` : ''
+    
+    const exampleJson = isStreaming && method.requestType.exampleJson ? 
+        `[${method.requestType.exampleJson}, ${method.requestType.exampleJson}]` : 
+        method.requestType.exampleJson
     
     return `
         <div class="request-builder">
             <h4 style="margin-bottom: 12px;">Request Body</h4>
+            ${streamingHint}
             <textarea id="request-${methodIdentifier}" 
                       class="body-textarea" 
                       style="width: 100%; height: 200px; font-family: monospace;"
-                      placeholder="Enter request JSON">${method.requestType.exampleJson}</textarea>
+                      placeholder="Enter request JSON${isStreaming ? ' (array for multiple messages)' : ''}">${exampleJson}</textarea>
             
             <div class="metadata-editor">
                 <h4 style="margin-bottom: 8px;">Metadata (optional)</h4>
