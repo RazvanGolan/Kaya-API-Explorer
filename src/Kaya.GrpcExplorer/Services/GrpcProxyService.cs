@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Net.Client;

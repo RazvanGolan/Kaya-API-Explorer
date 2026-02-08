@@ -123,6 +123,28 @@ public static class DynamicGrpcHelper
     }
 
     /// <summary>
+    /// Checks if a field is a map field
+    /// </summary>
+    private static bool IsMapField(FieldDescriptor field)
+    {
+        // Map fields are repeated message fields where the message type:
+        // 1. Has exactly 2 fields
+        // 2. Has fields named "key" and "value"
+        // 3. The message name typically ends with "Entry"
+        if (!field.IsRepeated || field.FieldType != FieldType.Message)
+        {
+            return false;
+        }
+
+        var messageType = field.MessageType;
+        var fields = messageType.Fields.InDeclarationOrder().ToList();
+        
+        return fields.Count == 2 &&
+               fields.Any(f => f.Name == "key") &&
+               fields.Any(f => f.Name == "value");
+    }
+
+    /// <summary>
     /// Writes a field from JSON to CodedOutputStream
     /// </summary>
     private static void WriteFieldFromJson(CodedOutputStream output, FieldDescriptor field, JsonElement root)
@@ -145,7 +167,47 @@ public static class DynamicGrpcHelper
 
         var tag = WireFormat.MakeTag(field.FieldNumber, GetWireType(field));
         
-        if (field.IsRepeated)
+        // Handle map fields (JSON object)
+        if (IsMapField(field))
+        {
+            if (value.ValueKind is not JsonValueKind.Object)
+            {
+                throw new InvalidOperationException(
+                    $"Expected an object to populate a map for field '{field.JsonName}', but got {value.ValueKind}. " +
+                    $"Map fields should be JSON objects like {{\"key1\": \"value1\", \"key2\": \"value2\"}}");
+            }
+            
+            var keyField = field.MessageType.FindFieldByName("key");
+            var valueField = field.MessageType.FindFieldByName("value");
+            
+            if (keyField == null || valueField == null)
+            {
+                throw new InvalidOperationException($"Map field '{field.JsonName}' is missing key or value fields");
+            }
+            
+            foreach (var property in value.EnumerateObject())
+            {
+                output.WriteTag(tag);
+                
+                // Write map entry as a message with key and value fields
+                using var ms = new MemoryStream();
+                using var entryOutput = new CodedOutputStream(ms);
+                
+                // Write key field (tag 1)
+                var keyTag = WireFormat.MakeTag(1, GetWireType(keyField));
+                entryOutput.WriteTag(keyTag);
+                WriteMapKeyValue(entryOutput, keyField, property.Name);
+                
+                // Write value field (tag 2)
+                var valueTag = WireFormat.MakeTag(2, GetWireType(valueField));
+                entryOutput.WriteTag(valueTag);
+                WriteFieldValue(entryOutput, valueField, property.Value);
+                
+                entryOutput.Flush();
+                output.WriteBytes(ByteString.CopyFrom(ms.ToArray()));
+            }
+        }
+        else if (field.IsRepeated)
         {
             if (value.ValueKind is not JsonValueKind.Array)
                 return;
@@ -160,6 +222,37 @@ public static class DynamicGrpcHelper
         {
             output.WriteTag(tag);
             WriteFieldValue(output, field, value);
+        }
+    }
+
+    /// <summary>
+    /// Writes a map key value (protobuf JSON keys are strings, but may need parsing for numeric types)
+    /// </summary>
+    private static void WriteMapKeyValue(CodedOutputStream output, FieldDescriptor keyField, string key)
+    {
+        switch (keyField.FieldType)
+        {
+            case FieldType.String:
+                output.WriteString(key);
+                break;
+            case FieldType.Int32 or FieldType.SInt32 or FieldType.SFixed32:
+                output.WriteInt32(int.Parse(key));
+                break;
+            case FieldType.Int64 or FieldType.SInt64 or FieldType.SFixed64:
+                output.WriteInt64(long.Parse(key));
+                break;
+            case FieldType.UInt32 or FieldType.Fixed32:
+                output.WriteUInt32(uint.Parse(key));
+                break;
+            case FieldType.UInt64 or FieldType.Fixed64:
+                output.WriteUInt64(ulong.Parse(key));
+                break;
+            case FieldType.Bool:
+                output.WriteBool(bool.Parse(key));
+                break;
+            default:
+                output.WriteString(key);
+                break;
         }
     }
 
@@ -285,7 +378,24 @@ public static class DynamicGrpcHelper
             {
                 var value = ReadFieldValue(input, field);
                 
-                if (field.IsRepeated)
+                if (IsMapField(field))
+                {
+                    // Map fields should be represented as dictionaries/objects in JSON
+                    if (!result.ContainsKey(field.JsonName))
+                    {
+                        result[field.JsonName] = new Dictionary<string, object?>();
+                    }
+                    
+                    // The value is a dictionary with "key" and "value" entries
+                    if (value is Dictionary<string, object?> mapEntry)
+                    {
+                        var mapDict = (Dictionary<string, object?>)result[field.JsonName]!;
+                        var key = mapEntry.GetValueOrDefault("key")?.ToString() ?? "";
+                        var val = mapEntry.GetValueOrDefault("value");
+                        mapDict[key] = val;
+                    }
+                }
+                else if (field.IsRepeated)
                 {
                     if (!result.ContainsKey(field.JsonName))
                     {

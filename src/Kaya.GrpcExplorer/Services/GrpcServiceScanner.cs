@@ -242,20 +242,12 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
     /// <summary>
     /// Gets cached file descriptor set for a service (used by GrpcProxyService)
     /// </summary>
-    public FileDescriptorSet? GetCachedDescriptorSet(string serverAddress, string serviceName)
-    {
-        return _descriptorCache.TryGetValue((serverAddress, serviceName), out var descriptorSet) 
-            ? descriptorSet 
-            : null;
-    }
-    
+    public FileDescriptorSet? GetCachedDescriptorSet(string serverAddress, string serviceName) => 
+        _descriptorCache.GetValueOrDefault((serverAddress, serviceName));
+
     /// <summary>
     /// Gets cached method descriptor (used by GrpcProxyService to avoid rebuilding FileDescriptors)
     /// </summary>
-    public MethodDescriptor? GetCachedMethodDescriptor(string serverAddress, string serviceName, string methodName)
-    {
-        return _methodDescriptorCache.TryGetValue((serverAddress, serviceName, methodName), out var methodDescriptor)
-            ? methodDescriptor
-            : null;
-    }
+    public MethodDescriptor? GetCachedMethodDescriptor(string serverAddress, string serviceName, string methodName) => 
+        _methodDescriptorCache.GetValueOrDefault((serverAddress, serviceName, methodName));
 }

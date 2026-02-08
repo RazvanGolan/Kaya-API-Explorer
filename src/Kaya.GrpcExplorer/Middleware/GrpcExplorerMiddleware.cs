@@ -65,8 +65,7 @@ public class GrpcExplorerMiddleware(RequestDelegate next, KayaGrpcExplorerOption
     {
         try
         {
-            var serverAddress = context.Request.Query["serverAddress"].ToString() 
-                ?? options.Middleware.DefaultServerAddress;
+            var serverAddress = context.Request.Query["serverAddress"].ToString();
 
             var scanner = context.RequestServices.GetRequiredService<IGrpcServiceScanner>();
             var services = await scanner.ScanServicesAsync(serverAddress);

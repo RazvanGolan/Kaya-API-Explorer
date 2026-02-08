@@ -29,7 +29,7 @@ public static class ProtobufHelper
                 Name = field.JsonName,
                 Number = field.FieldNumber,
                 Type = GetFieldTypeName(field),
-                IsRepeated = field.IsRepeated,
+                IsRepeated = field.IsRepeated && !IsMapField(field), // Map fields are not shown as repeated
                 Description = GetLeadingComments(field)
             });
         }
@@ -46,10 +46,36 @@ public static class ProtobufHelper
     public static string GenerateExampleJson(MessageDescriptor descriptor)
     {
         var example = new Dictionary<string, object?>();
+        var oneofFieldsToSkip = new HashSet<int>();
+
+        // For oneof fields, only include the first field from each oneof group
+        foreach (var oneof in descriptor.Oneofs)
+        {
+            var firstField = oneof.Fields.FirstOrDefault();
+            if (firstField != null)
+            {
+                // Mark other fields in this oneof to skip
+                foreach (var field in oneof.Fields.Skip(1))
+                {
+                    oneofFieldsToSkip.Add(field.FieldNumber);
+                }
+            }
+        }
 
         foreach (var field in descriptor.Fields.InDeclarationOrder())
         {
-            if (field.IsRepeated)
+            // Skip fields that are part of a oneof but not the first one
+            if (oneofFieldsToSkip.Contains(field.FieldNumber))
+            {
+                continue;
+            }
+
+            if (IsMapField(field))
+            {
+                // Map fields should be JSON objects, not arrays
+                example[field.JsonName] = GetExampleMapValue(field);
+            }
+            else if (field.IsRepeated)
             {
                 example[field.JsonName] = new List<object> { GetExampleValue(field) };
             }
@@ -102,6 +128,12 @@ public static class ProtobufHelper
                 "Int32Value" or "Int64Value" or "UInt32Value" or "UInt64Value" => 123,
                 "FloatValue" or "DoubleValue" => 12.34,
                 "BoolValue" => false,
+                "Empty" => new { },
+                "Struct" => new Dictionary<string, object> { { "key", "value" } },
+                "Value" => "value",
+                "ListValue" => new List<object> { "value" },
+                "Any" => new Dictionary<string, object> { { "@type", "type.googleapis.com/google.protobuf.StringValue" }, { "value", "string" } },
+                "FieldMask" => "field1,field2",
                 _ => new { }
             };
         }
@@ -134,10 +166,47 @@ public static class ProtobufHelper
     }
 
     /// <summary>
+    /// Gets example value for a map field
+    /// </summary>
+    private static Dictionary<string, object?> GetExampleMapValue(FieldDescriptor field)
+    {
+        // Map fields have a message type with "key" and "value" fields
+        var keyField = field.MessageType.FindFieldByName("key");
+        var valueField = field.MessageType.FindFieldByName("value");
+
+        if (keyField is null || valueField is null)
+        {
+            return [];
+        }
+
+        var keyType = GetFieldTypeName(keyField);
+        var valueExample = GetPrimitiveValue(valueField);
+
+        return new Dictionary<string, object?>
+        {
+            { keyType, valueExample }
+        };
+    }
+
+    /// <summary>
     /// Gets the field type name as string
     /// </summary>
     private static string GetFieldTypeName(FieldDescriptor field)
     {
+        // Check if it's a map field first
+        if (IsMapField(field))
+        {
+            var keyField = field.MessageType.FindFieldByName("key");
+            var valueField = field.MessageType.FindFieldByName("value");
+            
+            if (keyField is not null && valueField is not null)
+            {
+                var keyType = GetFieldTypeName(keyField);
+                var valueType = GetFieldTypeName(valueField);
+                return $"map<{keyType}, {valueType}>";
+            }
+        }
+
         return field.FieldType switch
         {
             FieldType.Double => "double",
@@ -169,5 +238,27 @@ public static class ProtobufHelper
         // Source location API changed in Protobuf v4
         // Skipping comments extraction for now - can be added later
         return string.Empty;
+    }
+
+    /// <summary>
+    /// Checks if a field is a map field
+    /// </summary>
+    private static bool IsMapField(FieldDescriptor field)
+    {
+        // Map fields are repeated message fields where the message type:
+        // 1. Has exactly 2 fields
+        // 2. Has fields named "key" and "value"
+        // 3. The message name typically ends with "Entry"
+        if (!field.IsRepeated || field.FieldType != FieldType.Message)
+        {
+            return false;
+        }
+
+        var messageType = field.MessageType;
+        var fields = messageType.Fields.InDeclarationOrder().ToList();
+        
+        return fields.Count == 2 &&
+               fields.Any(f => f.Name == "key") &&
+               fields.Any(f => f.Name == "value");
     }
 }

@@ -10,7 +10,7 @@
     <Authors>RazvanGolan</Authors>
     <Company>RazvanGolan</Company>
     <Product>Kaya gRPC Explorer</Product>
-    <Description>A lightweight gRPC service explorer for .NET applications that uses Server Reflection to automatically discover and test gRPC services. Features automatic service discovery via gRPC Server Reflection, support for all RPC types (Unary, Server Streaming, Client Streaming, Bidirectional Streaming), interactive UI for testing methods with JSON payloads, automatic Protobuf schema generation, authentication support, and streaming response handling with pagination.</Description>
+    <Description>A lightweight gRPC service explorer for .NET applications that uses Server Reflection to automatically discover and test gRPC services. Features automatic service discovery via gRPC Server Reflection, support for all RPC types (Unary, Server Streaming, Client Streaming, Bidirectional Streaming), interactive UI for testing methods with JSON payloads, automatic Protobuf schema generation and authentication support.</Description>
     <PackageTags>grpc;explorer;documentation;protobuf;reflection;aspnetcore;middleware;ui;interactive;streaming;rpc;server-reflection;</PackageTags>
     <RepositoryUrl>https://github.com/RazvanGolan/Kaya</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

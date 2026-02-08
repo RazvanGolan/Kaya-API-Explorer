@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Google.Protobuf;
-using Google.Protobuf.Reflection;
 
 namespace Kaya.GrpcExplorer.Helpers;
 
@@ -25,8 +24,6 @@ public static class CompiledMessageTypeCache
 
         return _typeCache.GetOrAdd(fullTypeName, typeName =>
         {
-            var searchName = typeName.Contains('.') ? typeName.Split('.').Last() : typeName;
-            
             // Search all types in protobuf-using assemblies
             foreach (var assembly in _scannedAssemblies)
             {
