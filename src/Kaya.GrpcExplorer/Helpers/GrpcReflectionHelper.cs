@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -10,46 +11,41 @@ namespace Kaya.GrpcExplorer.Helpers;
 /// </summary>
 public static class GrpcReflectionHelper
 {
+    // Shared channel cache to reuse connections across reflection calls and invocations
+    private static readonly ConcurrentDictionary<string, GrpcChannel> _channelCache = new();
     /// <summary>
     /// Gets all services from a gRPC server using reflection
     /// </summary>
     public static async Task<List<string>> ListServicesAsync(string serverAddress, bool allowInsecure = false)
     {
-        var channel = CreateChannel(serverAddress, allowInsecure);
-        try
+        var channel = GetOrCreateChannel(serverAddress, allowInsecure);
+        var client = new ServerReflection.ServerReflectionClient(channel);
+        var call = client.ServerReflectionInfo();
+
+        // Request list of services
+        await call.RequestStream.WriteAsync(new ServerReflectionRequest
         {
-            var client = new ServerReflection.ServerReflectionClient(channel);
-            var call = client.ServerReflectionInfo();
+            ListServices = ""
+        });
 
-            // Request list of services
-            await call.RequestStream.WriteAsync(new ServerReflectionRequest
+        var services = new List<string>();
+
+        // Read response
+        if (await call.ResponseStream.MoveNext())
+        {
+            var response = call.ResponseStream.Current;
+            if (response.ListServicesResponse is not null)
             {
-                ListServices = ""
-            });
-
-            var services = new List<string>();
-
-            // Read response
-            if (await call.ResponseStream.MoveNext())
-            {
-                var response = call.ResponseStream.Current;
-                if (response.ListServicesResponse is not null)
-                {
-                    services.AddRange(
-                        from service in response.ListServicesResponse.Service
-                        where !service.Name.Contains("ServerReflection")
-                        select service.Name
-                        );
-                }
+                services.AddRange(
+                    from service in response.ListServicesResponse.Service
+                    where !service.Name.Contains("ServerReflection")
+                    select service.Name
+                    );
             }
+        }
 
-            await call.RequestStream.CompleteAsync();
-            return services;
-        }
-        finally
-        {
-            await channel.ShutdownAsync();
-        }
+        await call.RequestStream.CompleteAsync();
+        return services;
     }
 
     /// <summary>
@@ -60,61 +56,54 @@ public static class GrpcReflectionHelper
         string serviceName,
         bool allowInsecure = false)
     {
-        var channel = CreateChannel(serverAddress, allowInsecure);
-        try
+        var channel = GetOrCreateChannel(serverAddress, allowInsecure);
+        var client = new ServerReflection.ServerReflectionClient(channel);
+        var call = client.ServerReflectionInfo();
+
+        // Request file containing symbol
+        await call.RequestStream.WriteAsync(new ServerReflectionRequest
         {
-            var client = new ServerReflection.ServerReflectionClient(channel);
-            var call = client.ServerReflectionInfo();
+            FileContainingSymbol = serviceName
+        });
 
-            // Request file containing symbol
-            await call.RequestStream.WriteAsync(new ServerReflectionRequest
+        // Keyed by file Name as returned by the server
+        var resolvedFiles = new Dictionary<string, FileDescriptorProto>();
+
+        if (await call.ResponseStream.MoveNext())
+        {
+            var response = call.ResponseStream.Current;
+            if (response.FileDescriptorResponse is not null)
             {
-                FileContainingSymbol = serviceName
-            });
-
-            // Keyed by file Name as returned by the server
-            var resolvedFiles = new Dictionary<string, FileDescriptorProto>();
-
-            if (await call.ResponseStream.MoveNext())
-            {
-                var response = call.ResponseStream.Current;
-                if (response.FileDescriptorResponse is not null)
+                foreach (var fd in response.FileDescriptorResponse.FileDescriptorProto)
                 {
-                    foreach (var fd in response.FileDescriptorResponse.FileDescriptorProto)
-                    {
-                        var parsed = FileDescriptorProto.Parser.ParseFrom(fd);
-                        resolvedFiles.TryAdd(parsed.Name, parsed);
-                    }
+                    var parsed = FileDescriptorProto.Parser.ParseFrom(fd);
+                    resolvedFiles.TryAdd(parsed.Name, parsed);
                 }
             }
-
-            await call.RequestStream.CompleteAsync();
-
-            if (resolvedFiles.Count is 0)
-            {
-                return null;
-            }
-
-            // Fix dependency name mismatches caused by ProtoRoot differences.
-            // E.g., a file imports "Protos/models.proto" but the server registered
-            // the file as just "models.proto". We rewrite dependency references
-            // to match the actual registered file names.
-            RewriteMismatchedDependencies(resolvedFiles);
-
-            // Build result in dependency order
-            var result = new FileDescriptorSet();
-            var added = new HashSet<string>();
-            foreach (var file in resolvedFiles.Values)
-            {
-                AddInDependencyOrder(file, resolvedFiles, result, added);
-            }
-
-            return result;
         }
-        finally
+
+        await call.RequestStream.CompleteAsync();
+
+        if (resolvedFiles.Count is 0)
         {
-            await channel.ShutdownAsync();
+            return null;
         }
+
+        // Fix dependency name mismatches caused by ProtoRoot differences.
+        // E.g., a file imports "Protos/models.proto" but the server registered
+        // the file as just "models.proto". We rewrite dependency references
+        // to match the actual registered file names.
+        RewriteMismatchedDependencies(resolvedFiles);
+
+        // Build result in dependency order
+        var result = new FileDescriptorSet();
+        var added = new HashSet<string>();
+        foreach (var file in resolvedFiles.Values)
+        {
+            AddInDependencyOrder(file, resolvedFiles, result, added);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -176,9 +165,18 @@ public static class GrpcReflectionHelper
     }
 
     /// <summary>
+    /// Gets or creates a cached gRPC channel for the server address
+    /// </summary>
+    public static GrpcChannel GetOrCreateChannel(string serverAddress, bool allowInsecure = false)
+    {
+        var cacheKey = $"{serverAddress}|{allowInsecure}";
+        return _channelCache.GetOrAdd(cacheKey, _ => CreateChannel(serverAddress, allowInsecure));
+    }
+
+    /// <summary>
     /// Creates a gRPC channel with appropriate settings
     /// </summary>
-    public static GrpcChannel CreateChannel(string serverAddress, bool allowInsecure = false)
+    private static GrpcChannel CreateChannel(string serverAddress, bool allowInsecure = false)
     {
         var hasExplicitScheme = serverAddress.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                              || serverAddress.StartsWith("https://", StringComparison.OrdinalIgnoreCase);

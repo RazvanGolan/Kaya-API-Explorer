@@ -15,7 +15,7 @@ public class ProductServiceImpl(ILogger<ProductServiceImpl> logger) : ProductSer
         // Seed some products
         var product1 = new ProductResponse
         {
-            ProductId = "PROD-001",
+            ProductId = "1",
             Name = "Wireless Mouse",
             Description = "Ergonomic wireless mouse with USB receiver",
             Category = "Electronics",
@@ -29,7 +29,7 @@ public class ProductServiceImpl(ILogger<ProductServiceImpl> logger) : ProductSer
 
         var product2 = new ProductResponse
         {
-            ProductId = "PROD-002",
+            ProductId = "2",
             Name = "Mechanical Keyboard",
             Description = "RGB mechanical gaming keyboard with blue switches",
             Category = "Electronics",
@@ -43,7 +43,7 @@ public class ProductServiceImpl(ILogger<ProductServiceImpl> logger) : ProductSer
 
         var product3 = new ProductResponse
         {
-            ProductId = "PROD-003",
+            ProductId = "3",
             Name = "USB-C Hub",
             Description = "7-in-1 USB-C hub with HDMI and ethernet",
             Category = "Accessories",
@@ -57,7 +57,7 @@ public class ProductServiceImpl(ILogger<ProductServiceImpl> logger) : ProductSer
 
         var product4 = new ProductResponse
         {
-            ProductId = "PROD-004",
+            ProductId = "4",
             Name = "Laptop Stand",
             Description = "Adjustable aluminum laptop stand",
             Category = "Accessories",
@@ -71,7 +71,7 @@ public class ProductServiceImpl(ILogger<ProductServiceImpl> logger) : ProductSer
 
         var product5 = new ProductResponse
         {
-            ProductId = "PROD-005",
+            ProductId = "5",
             Name = "Webcam HD",
             Description = "1080p webcam with built-in microphone",
             Category = "Electronics",

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Kaya.GrpcExplorer.Configuration;
@@ -9,6 +10,8 @@ namespace Kaya.GrpcExplorer.Services;
 public interface IGrpcServiceScanner
 {
     Task<List<GrpcServiceInfo>> ScanServicesAsync(string serverAddress);
+    FileDescriptorSet? GetCachedDescriptorSet(string serverAddress, string serviceName);
+    MethodDescriptor? GetCachedMethodDescriptor(string serverAddress, string serviceName, string methodName);
 }
 
 /// <summary>
@@ -16,7 +19,10 @@ public interface IGrpcServiceScanner
 /// </summary>
 public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceScanner
 {
-    private readonly Dictionary<string, List<GrpcServiceInfo>> _cache = new();
+    private readonly ConcurrentDictionary<string, List<GrpcServiceInfo>> _cache = [];
+    private readonly ConcurrentDictionary<(string, string), FileDescriptorSet> _descriptorCache = [];
+    // Cache method descriptors to avoid rebuilding FileDescriptors on every invocation
+    private readonly ConcurrentDictionary<(string, string, string), MethodDescriptor> _methodDescriptorCache = [];
 
     /// <summary>
     /// Scans a gRPC server for services using reflection
@@ -70,10 +76,26 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
     /// </summary>
     private async Task<GrpcServiceInfo?> GetServiceInfoAsync(string serverAddress, string serviceName)
     {
-        var fileDescriptorSet = await GrpcReflectionHelper.GetFileDescriptorAsync(
-            serverAddress,
-            serviceName,
-            options.Middleware.AllowInsecureConnections);
+        var cacheKey = (serverAddress, serviceName);
+        FileDescriptorSet? fileDescriptorSet;
+        
+        // Try to use cached descriptor set first
+        if (_descriptorCache.TryGetValue(cacheKey, out var cachedSet))
+        {
+            fileDescriptorSet = cachedSet;
+        }
+        else
+        {
+            fileDescriptorSet = await GrpcReflectionHelper.GetFileDescriptorAsync(
+                serverAddress,
+                serviceName,
+                options.Middleware.AllowInsecureConnections);
+            
+            if (fileDescriptorSet is not null)
+            {
+                _descriptorCache[cacheKey] = fileDescriptorSet;
+            }
+        }
 
         if (fileDescriptorSet is null)
         {
@@ -83,7 +105,7 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
         // Serialize all file descriptors to ByteStrings.
         // The reflection response includes the requested file and all its transitive
         // dependencies. BuildFromByteStrings needs them all, in dependency order
-        // (dependencies before dependents ΓÇö which is how the reflection server returns them).
+        // (dependencies before dependents which is how the reflection server returns them).
         var byteStrings = new List<ByteString>();
         foreach (var fileProto in fileDescriptorSet.File)
         {
@@ -102,7 +124,7 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
             {
                 if (service.FullName == serviceName)
                 {
-                    return BuildServiceInfo(service);
+                    return BuildServiceInfo(serverAddress, service);
                 }
             }
         }
@@ -113,7 +135,7 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
     /// <summary>
     /// Builds service info from service descriptor
     /// </summary>
-    private GrpcServiceInfo BuildServiceInfo(ServiceDescriptor service)
+    private GrpcServiceInfo BuildServiceInfo(string serverAddress, ServiceDescriptor service)
     {
         var serviceInfo = new GrpcServiceInfo
         {
@@ -126,6 +148,10 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
 
         foreach (var method in service.Methods)
         {
+            // Cache the method descriptor for later use during invocation
+            var cacheKey = (serverAddress, service.FullName, method.Name);
+            _methodDescriptorCache[cacheKey] = method;
+            
             serviceInfo.Methods.Add(BuildMethodInfo(method));
         }
 
@@ -190,6 +216,46 @@ public class GrpcServiceScanner(KayaGrpcExplorerOptions options) : IGrpcServiceS
     /// </summary>
     public void ClearCache(string serverAddress)
     {
-        _cache.Remove(serverAddress);
+        _cache.TryRemove(serverAddress, out _);
+        
+        // Remove all descriptor cache entries for this server
+        var descriptorKeysToRemove = _descriptorCache.Keys
+            .Where(k => k.Item1 == serverAddress)
+            .ToList();
+        
+        foreach (var key in descriptorKeysToRemove)
+        {
+            _descriptorCache.TryRemove(key, out _);
+        }
+        
+        // Remove all method descriptor cache entries for this server
+        var methodKeysToRemove = _methodDescriptorCache.Keys
+            .Where(k => k.Item1 == serverAddress)
+            .ToList();
+        
+        foreach (var key in methodKeysToRemove)
+        {
+            _methodDescriptorCache.TryRemove(key, out _);
+        }
+    }
+    
+    /// <summary>
+    /// Gets cached file descriptor set for a service (used by GrpcProxyService)
+    /// </summary>
+    public FileDescriptorSet? GetCachedDescriptorSet(string serverAddress, string serviceName)
+    {
+        return _descriptorCache.TryGetValue((serverAddress, serviceName), out var descriptorSet) 
+            ? descriptorSet 
+            : null;
+    }
+    
+    /// <summary>
+    /// Gets cached method descriptor (used by GrpcProxyService to avoid rebuilding FileDescriptors)
+    /// </summary>
+    public MethodDescriptor? GetCachedMethodDescriptor(string serverAddress, string serviceName, string methodName)
+    {
+        return _methodDescriptorCache.TryGetValue((serverAddress, serviceName, methodName), out var methodDescriptor)
+            ? methodDescriptor
+            : null;
     }
 }

@@ -336,12 +336,15 @@ public static class DynamicGrpcHelper
         string serverAddress,
         string serviceName,
         string methodName,
-        bool allowInsecure)
+        bool allowInsecure,
+        FileDescriptorSet? cachedDescriptorSet = null)
     {
-        var fileDescriptorSet = await GrpcReflectionHelper.GetFileDescriptorAsync(
-            serverAddress,
-            serviceName,
-            allowInsecure);
+        FileDescriptorSet? fileDescriptorSet = cachedDescriptorSet;
+        
+        fileDescriptorSet ??= await GrpcReflectionHelper.GetFileDescriptorAsync(
+                serverAddress,
+                serviceName,
+                allowInsecure);
 
         if (fileDescriptorSet is null)
         {

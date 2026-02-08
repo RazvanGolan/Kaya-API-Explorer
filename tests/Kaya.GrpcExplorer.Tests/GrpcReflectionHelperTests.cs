@@ -62,13 +62,13 @@ public class GrpcReflectionHelperTests
     }
 
     [Fact]
-    public void CreateChannel_ShouldCreateChannel_WhenAddressProvided()
+    public void GetOrCreateChannel_ShouldCreateChannel_WhenAddressProvided()
     {
         // Arrange
         var serverAddress = "localhost:5000";
 
         // Act
-        var channel = GrpcReflectionHelper.CreateChannel(serverAddress, allowInsecure: true);
+        var channel = GrpcReflectionHelper.GetOrCreateChannel(serverAddress, allowInsecure: true);
 
         // Assert
         channel.Should().NotBeNull();
@@ -79,13 +79,13 @@ public class GrpcReflectionHelperTests
     }
 
     [Fact]
-    public void CreateChannel_ShouldThrow_WhenInvalidAddressProvided()
+    public void GetOrCreateChannel_ShouldThrow_WhenInvalidAddressProvided()
     {
         // Arrange
         var serverAddress = "";
 
         // Act & Assert
-        var act = () => GrpcReflectionHelper.CreateChannel(serverAddress, allowInsecure: true);
+        var act = () => GrpcReflectionHelper.GetOrCreateChannel(serverAddress, allowInsecure: true);
         act.Should().Throw<Exception>();
     }
 }

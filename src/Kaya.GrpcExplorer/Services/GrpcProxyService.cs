@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Net.Client;
@@ -17,6 +18,7 @@ public interface IGrpcProxyService
 /// </summary>
 public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScanner scanner) : IGrpcProxyService
 {
+
     /// <summary>
     /// Invokes a gRPC method and returns the response
     /// </summary>
@@ -49,34 +51,27 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
                };
            }
 
-           // Create channel
-           var channel = GrpcReflectionHelper.CreateChannel(
+           // Get or create channel (reuse existing connection from shared cache)
+           var channel = GrpcReflectionHelper.GetOrCreateChannel(
                request.ServerAddress,
                options.Middleware.AllowInsecureConnections);
 
-           try
-           {
-               // Create metadata
-               var metadata = GrpcReflectionHelper.CreateMetadata(request.Metadata);
+           // Create metadata
+           var metadata = GrpcReflectionHelper.CreateMetadata(request.Metadata);
 
-               // Invoke based on method type
-               var response = method.MethodType switch
-               {
-                   GrpcMethodType.Unary => await InvokeUnaryAsync(channel, method, request.RequestJson, metadata),
-                   GrpcMethodType.ServerStreaming => await InvokeServerStreamingAsync(channel, method, request.RequestJson, metadata),
-                   GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
-                   GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
-                   _ => throw new NotSupportedException($"Method type {method.MethodType} not supported")
-               };
-
-               stopwatch.Stop();
-               response.DurationMs = stopwatch.ElapsedMilliseconds;
-               return response;
-           }
-           finally
+           // Invoke based on method type
+           var response = method.MethodType switch
            {
-               await channel.ShutdownAsync();
-           }
+               GrpcMethodType.Unary => await InvokeUnaryAsync(channel, method, request.RequestJson, metadata),
+               GrpcMethodType.ServerStreaming => await InvokeServerStreamingAsync(channel, method, request.RequestJson, metadata),
+               GrpcMethodType.ClientStreaming => await InvokeClientStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
+               GrpcMethodType.DuplexStreaming => await InvokeDuplexStreamingAsync(channel, method, PrepareStreamRequests(request), metadata),
+               _ => throw new NotSupportedException($"Method type {method.MethodType} not supported")
+           };
+
+           stopwatch.Stop();
+           response.DurationMs = stopwatch.ElapsedMilliseconds;
+           return response;
        }
        catch (RpcException rpcEx)
        {
@@ -307,10 +302,21 @@ public class GrpcProxyService(KayaGrpcExplorerOptions options, IGrpcServiceScann
            return null;
        }
 
+       // Try to use cached method descriptor first (avoids rebuilding FileDescriptors)
+       var cachedMethodDescriptor = scanner.GetCachedMethodDescriptor(serverAddress, service.ServiceName, method.MethodName);
+       if (cachedMethodDescriptor is not null)
+       {
+           return cachedMethodDescriptor;
+       }
+       
+       // Fallback: use cached descriptor set to avoid redundant network calls
+       var cachedDescriptorSet = scanner.GetCachedDescriptorSet(serverAddress, service.ServiceName);
+       
        return await DynamicGrpcHelper.GetMethodDescriptorAsync(
            serverAddress,
            service.ServiceName,
            method.MethodName,
-           options.Middleware.AllowInsecureConnections);
+           options.Middleware.AllowInsecureConnections,
+           cachedDescriptorSet);
    }
 }

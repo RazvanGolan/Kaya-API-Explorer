@@ -10,7 +10,7 @@ const int kayaUiPort = 5010;
 // Configure Kestrel endpoints
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // HTTP/2 cleartext (h2c) on the main port ΓÇö required for gRPC without TLS.
+    // HTTP/2 cleartext (h2c) on the main port required for gRPC without TLS.
     // Note: Without TLS, Kestrel only serves HTTP/2 when explicitly set to Http2.
     // Http1AndHttp2 without TLS falls back to HTTP/1.1 only (no ALPN negotiation).
     options.ListenLocalhost(grpcPort, o => o.Protocols = HttpProtocols.Http2);
