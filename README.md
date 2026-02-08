@@ -1,10 +1,13 @@
 # Kaya Developer Tools
 
+[![NuGet](https://img.shields.io/nuget/v/Kaya.ApiExplorer?style=flat&label=Kaya.ApiExplorer&logo=nuget)](https://www.nuget.org/packages/Kaya.ApiExplorer)
+[![NuGet](https://img.shields.io/nuget/v/Kaya.GrpcExplorer?style=flat&label=Kaya.GrpcExplorer&logo=nuget)](https://www.nuget.org/packages/Kaya.GrpcExplorer)
+
 A collection of lightweight development tools for .NET applications that provide automatic discovery and interactive testing capabilities.
 
 ## Tools
 
-### <img src="src/Kaya.ApiExplorer/UI/ApiExplorer/icon.svg" width="28" height="28" align="center" /> [Kaya.ApiExplorer](https://www.nuget.org/packages/Kaya.ApiExplorer)
+### <img src="src/Kaya.ApiExplorer/UI/ApiExplorer/icon.svg" width="28" height="28" align="center" /> Kaya.ApiExplorer
 Swagger-like API documentation tool that automatically scans HTTP endpoints and displays them in an interactive UI.
 
 **Features:**
@@ -18,7 +21,7 @@ Swagger-like API documentation tool that automatically scans HTTP endpoints and 
 
 📖 [Full Documentation](src/Kaya.ApiExplorer/README.md)
 
-### <img src="src/Kaya.GrpcExplorer/UI/icon.svg" width="28" height="28" align="center" />  [Kaya.GrpcExplorer](https://www.nuget.org/packages/Kaya.GrpcExplorer)
+### <img src="src/Kaya.GrpcExplorer/UI/icon.svg" width="28" height="28" align="center" />  Kaya.GrpcExplorer
 gRPC service explorer that uses Server Reflection to discover and test gRPC services.
 **Features:**
 - Automatic Service Discovery - Uses gRPC Server Reflection to enumerate services and methods

@@ -92,34 +92,14 @@ builder.Services.AddKayaGrpcExplorer();
 ### Advanced Configuration
 
 ```csharp
-using Kaya.GrpcExplorer.Extensions;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddGrpc();
-
-if (builder.Environment.IsDevelopment())
+builder.Services.AddKayaGrpcExplorer(options =>
 {
-    builder.Services.AddKayaGrpcExplorer(options =>
-    {
-        options.Middleware.RoutePrefix = "/grpc-explorer";
-        options.Middleware.DefaultTheme = "dark";
-        options.Middleware.DefaultServerAddress = "https://localhost:5000";
-        options.Middleware.StreamBufferSize = 100;
-        options.Middleware.RequestTimeoutSeconds = 30;
-    });
-}
-
-var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseKayaGrpcExplorer();
-}
-
-app.MapGrpcService<YourGrpcService>();
-
-app.Run();
+    options.Middleware.RoutePrefix = "/grpc-explorer";
+    options.Middleware.DefaultTheme = "dark";
+    options.Middleware.DefaultServerAddress = "https://localhost:5000";
+    options.Middleware.StreamBufferSize = 100;
+    options.Middleware.RequestTimeoutSeconds = 30;
+});
 ```
 
 **Configuration Options:**
@@ -132,7 +112,7 @@ app.Run();
 
 ### HTTP-Only Endpoints (No TLS)
 
-If your gRPC service runs over **plain HTTP without TLS** you need a special configuration because:
+If your gRPC service runs over **plain HTTP without TLS** you need this special configuration because:
 
 1. **gRPC requires HTTP/2**, but Kestrel's `Http1AndHttp2` mode without TLS **falls back to HTTP/1.1 only** (no ALPN negotiation available).
 2. **Browsers don't support HTTP/2 cleartext (h2c)**, so the Kaya UI page can't be served over an HTTP/2-only endpoint.
@@ -150,7 +130,7 @@ const int kayaUiPort = 5010;
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // HTTP/2 cleartext (h2c) it required for gRPC without TLS
+    // HTTP/2 cleartext (h2c) required for gRPC without TLS
     options.ListenLocalhost(grpcPort, o => o.Protocols = HttpProtocols.Http2);
 
     // HTTP/1.1 for browser access to Kaya UI (development only)
@@ -192,7 +172,7 @@ This repository includes a comprehensive demo gRPC service showcasing all four R
 
 ### Demo.GrpcService
 
-A multi-service gRPC application demonstrating Orders, Products, and Notifications with all RPC patterns:
+A multi-service gRPC application with examples for all RPC patterns.
 
 **Running the Demo:**
 
@@ -207,24 +187,7 @@ dotnet run --launch-profile Demo.GrpcOrdersService.Https
 # Then open: https://localhost:5001/grpc-explorer
 ```
 
-**OrderService** - Order management (5 methods)
-- `GetOrder` (Unary) - Retrieve a single order
-- `CreateOrder` (Unary) - Create a new order
-- `WatchOrders` (Server Streaming) - Watch order updates in real-time
-- `UploadBulkOrders` (Client Streaming) - Upload multiple orders in batch
-- `TrackOrderFulfillment` (Bidirectional Streaming) - Real-time order tracking with updates
-
-**ProductService** - Product catalog (4 methods)
-- `GetProduct` (Unary) - Get a single product by ID
-- `SearchProducts` (Server Streaming) - Search products with streaming results
-- `ImportProducts` (Client Streaming) - Batch import/update products
-- `SyncPrices` (Bidirectional Streaming) - Real-time price synchronization
-
-**NotificationService** - Notifications (4 methods)
-- `SendNotification` (Unary) - Send a single notification
-- `SubscribeToNotifications` (Server Streaming) - Subscribe to notification stream
-- `BatchSendNotifications` (Client Streaming) - Send multiple notifications in batch
-- `NotificationChat` (Bidirectional Streaming) - Real-time bidirectional chat
+> **Note on HTTPS**: If you use the HTTPS launch profile, the server uses a self-signed certificate. You'll need to trust it in your browser or system to avoid certificate warnings.
 
 > **Note**: When running with the HTTP profile, gRPC traffic runs on port 5000 (HTTP/2) and the Kaya UI is served on port 5010 (HTTP/1.1). With HTTPS, both run on port 5001.
 
