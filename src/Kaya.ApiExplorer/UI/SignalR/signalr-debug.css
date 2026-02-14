@@ -20,6 +20,15 @@
   display: block;
 }
 
+/* Ensure consistent button sizing with API Explorer */
+.header-actions .btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 /* Hub list uses same class as controllers-list for consistency */
 .controllers-list {
   display: flex;

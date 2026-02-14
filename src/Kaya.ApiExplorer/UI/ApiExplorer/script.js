@@ -535,8 +535,8 @@ function handleLogoClick() {
     logoClickCount = 0;
   }, 1000);
   
-  // Activate easter egg after 5 clicks
-  if (logoClickCount >= 5) {
+  // Activate easter egg after 3 clicks
+  if (logoClickCount >= 3) {
     logoClickCount = 0;
     activateEasterEgg();
     
