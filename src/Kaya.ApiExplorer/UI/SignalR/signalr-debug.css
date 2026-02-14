@@ -2,11 +2,43 @@
 :root {
   --connected-bg: #10b981;
   --disconnected-bg: #ef4444;
+  --purple-bg-light: #ede9fe;
+  --purple-primary: #8b5cf6;
+  --purple-text-dark: #6d28d9;
+  --purple-border: #ccbdef;
+  --purple-bg-lighter: #ddd6fe;
+  --purple-text-light: #c4b5fd;
+  --success-btn-bg: #10b981;
+  --success-btn-hover: #059669;
+  --danger-btn-hover: #dc2626;
 }
 
 [data-theme="dark"] {
   --connected-bg: #10b981;
   --disconnected-bg: #ef4444;
+  --purple-bg-light: rgba(139, 92, 246, 0.1);
+  --purple-primary: #8b5cf6;
+  --purple-text-dark: #6d28d9;
+  --purple-border: #ccbdef;
+  --purple-bg-lighter: rgba(139, 92, 246, 0.2);
+  --purple-text-light: #c4b5fd;
+  --success-btn-bg: #10b981;
+  --success-btn-hover: #059669;
+  --danger-btn-hover: #dc2626;
+}
+
+[data-theme="easter-egg"] {
+  --connected-bg: #10b981;
+  --disconnected-bg: #ef4444;
+  --purple-bg-light: rgba(199, 158, 110, 0.15);
+  --purple-primary: var(--accent-primary);
+  --purple-text-dark: var(--text-primary);
+  --purple-border: var(--border-secondary);
+  --purple-bg-lighter: rgba(199, 158, 110, 0.25);
+  --purple-text-light: var(--text-secondary);
+  --success-btn-bg: var(--success-border);
+  --success-btn-hover: var(--success-text);
+  --danger-btn-hover: var(--error-border);
 }
 
 /* Theme icon display logic */
@@ -409,15 +441,13 @@
 }
 
 .log-entry.incoming {
-  background: #ede9fe;
-  border-color: #8b5cf6;
-  color: #6d28d9;
+  background: var(--purple-bg-light);
+  border-color: var(--purple-primary);
+  color: var(--purple-text-dark);
 }
 
 [data-theme="dark"] .log-entry.incoming {
-  background: rgba(139, 92, 246, 0.1);
-  border-color: #8b5cf6;
-  color: #c4b5fd;
+  color: var(--purple-text-light);
 }
 
 .log-timestamp {
@@ -433,14 +463,18 @@
 
 /* SignalR-specific button styles */
 .btn-success {
-  background: #10b981;
+  background: var(--success-btn-bg);
   color: white;
   border: 1px solid transparent;
 }
 
 .btn-success:hover {
-  background: #059669;
+  background: var(--success-btn-hover);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="easter-egg"] .btn-success:hover {
+  box-shadow: 0 2px 8px var(--shadow-light);
 }
 
 .btn-success:disabled {
@@ -456,7 +490,7 @@
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: var(--danger-btn-hover);
   color: white;
 }
 
@@ -477,26 +511,19 @@
 }
 
 .btn-purple {
-  background: #ede9fe;
-  color: #8b5cf6;
-  border: 1px solid #ccbdef;
+  background: var(--purple-bg-light);
+  color: var(--purple-primary);
+  border: 1px solid var(--purple-border);
   font-weight: 500;
 }
 
-[data-theme="dark"] .btn-purple {
-  background: rgba(139, 92, 246, 0.1);
-  color: #c4b5fd;
-  border: 1px solid #ccbdef;
-}
-
 .btn-purple:hover {
-  background: #ddd6fe;
+  background: var(--purple-bg-lighter);
   box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
-[data-theme="dark"] .btn-purple:hover {
-  background: rgba(139, 92, 246, 0.2);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+[data-theme="easter-egg"] .btn-purple:hover {
+  box-shadow: 0 2px 8px var(--shadow-light);
 }
 
 .btn-purple:disabled {
@@ -677,7 +704,7 @@
 }
 
 .handler-info svg {
-  color: #8b5cf6;
+  color: var(--purple-primary);
   flex-shrink: 0;
 }
 

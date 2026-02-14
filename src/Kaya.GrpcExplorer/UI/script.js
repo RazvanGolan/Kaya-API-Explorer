@@ -2,6 +2,8 @@
 let services = []
 let selectedService = ""
 let expandedMethods = []
+let methodActiveTabs = {}
+let methodResponses = {}
 let currentServerAddress = ""
 
 // Auto-resize textarea helper
@@ -224,6 +226,9 @@ function renderMethods() {
     document.getElementById('serviceDescription').textContent = service.description || `Package: ${service.package || 'default'}`
     
     const container = document.getElementById('methodsList')
+    
+    saveMethodStates()
+    
     container.innerHTML = ''
     
     const query = document.getElementById('searchInput').value.toLowerCase().trim()
@@ -272,26 +277,30 @@ function renderMethods() {
     if (query && methodsToShow.length === 0) {
         container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 2rem;">No methods match your search query.</p>'
     }
+    
+    restoreMethodStates()
 }
 
 function renderMethodTabs(method, methodId, index) {
+    const activeTab = methodActiveTabs[methodId] || 'request';
+    
     return `
         <div class="tabs">
             <div class="tab-list">
-                <button class="tab-trigger active" onclick="switchTab(event, '${methodId}', 'request')">Request</button>
-                <button class="tab-trigger" onclick="switchTab(event, '${methodId}', 'response')">Response</button>
-                <button class="tab-trigger" onclick="switchTab(event, '${methodId}', 'try')">Try it out</button>
+                <button class="tab-trigger ${activeTab === 'request' ? 'active' : ''}" onclick="switchTab(event, '${methodId}', 'request')">Request</button>
+                <button class="tab-trigger ${activeTab === 'response' ? 'active' : ''}" onclick="switchTab(event, '${methodId}', 'response')">Response</button>
+                <button class="tab-trigger ${activeTab === 'try' ? 'active' : ''}" onclick="switchTab(event, '${methodId}', 'try')">Try it out</button>
             </div>
             
-            <div class="tab-content active" id="${methodId}-request">
+            <div class="tab-content ${activeTab === 'request' ? 'active' : ''}" id="${methodId}-request">
                 ${renderMessageSchema(method.requestType, 'Request')}
             </div>
             
-            <div class="tab-content" id="${methodId}-response">
+            <div class="tab-content ${activeTab === 'response' ? 'active' : ''}" id="${methodId}-response">
                 ${renderMessageSchema(method.responseType, 'Response')}
             </div>
             
-            <div class="tab-content" id="${methodId}-try">
+            <div class="tab-content ${activeTab === 'try' ? 'active' : ''}" id="${methodId}-try">
                 ${renderTryItOut(method, index)}
             </div>
         </div>
@@ -357,6 +366,8 @@ function renderTryItOut(method, index) {
 function selectService(serviceName) {
     selectedService = serviceName
     expandedMethods = []
+    methodActiveTabs = {}
+    methodResponses = {}
     renderServices()
     renderMethods()
 }
@@ -385,7 +396,8 @@ function switchTab(event, methodId, tabName) {
     
     document.getElementById(`${methodId}-${tabName}`).classList.add('active')
     
-    // Auto-resize textareas in the newly visible tab
+    methodActiveTabs[methodId] = tabName;
+    
     const activeTab = document.getElementById(`${methodId}-${tabName}`);
     if (activeTab) setupTextareaAutoResize(activeTab);
 }
@@ -400,6 +412,12 @@ async function invokeMethod(serviceName, methodIndex) {
     
     responseContainer.style.display = 'block'
     responseContainer.innerHTML = '<p>Invoking method...</p>'
+    
+    // Store the invoking state
+    methodResponses[methodIdentifier] = {
+        html: '<p>Invoking method...</p>',
+        visible: true
+    };
     
     try {
         const config = window.KayaGrpcExplorerConfig || {}
@@ -458,7 +476,7 @@ async function invokeMethod(serviceName, methodIndex) {
             
             const duration = result.durationMs || 0
             
-            responseContainer.innerHTML = `
+            const successHtml = `
                 ${generatePerformanceHtml(duration, requestSize, responseSize)}
                 <div class="code-block" style="position: relative;">
                     <div style="position: absolute; top: 8px; right: 8px; z-index: 1; display: flex; gap: 4px;">
@@ -480,9 +498,17 @@ async function invokeMethod(serviceName, methodIndex) {
                     </div>
                     <pre>${responseJson}</pre>
                 </div>
-            `
+            `;
+            
+            responseContainer.innerHTML = successHtml;
+            
+            // Store the successful response
+            methodResponses[methodIdentifier] = {
+                html: successHtml,
+                visible: true
+            };
         } else {
-            responseContainer.innerHTML = `
+            const errorHtml = `
                 <div class="server-status disconnected">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -491,10 +517,18 @@ async function invokeMethod(serviceName, methodIndex) {
                     </svg>
                     Error: ${result.errorMessage}
                 </div>
-            `
+            `;
+            
+            responseContainer.innerHTML = errorHtml;
+            
+            // Store the error response
+            methodResponses[methodIdentifier] = {
+                html: errorHtml,
+                visible: true
+            };
         }
     } catch (error) {
-        responseContainer.innerHTML = `
+        const errorHtml = `
             <div class="server-status disconnected">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -503,7 +537,15 @@ async function invokeMethod(serviceName, methodIndex) {
                 </svg>
                 Request failed: ${error.message}
             </div>
-        `
+        `;
+        
+        responseContainer.innerHTML = errorHtml;
+        
+        // Store the error response
+        methodResponses[methodIdentifier] = {
+            html: errorHtml,
+            visible: true
+        };
     }
 }
 
@@ -596,6 +638,47 @@ function clearSearch() {
     document.getElementById('searchInput').value = ''
     document.getElementById('clearSearchBtn').style.display = 'none'
     filterServices()
+}
+
+// Helper functions to save and restore method states
+function saveMethodStates() {
+    document.querySelectorAll('.method-card').forEach(card => {
+        const tabList = card.querySelector('.tab-list');
+        if (tabList) {
+            const activeTabButton = tabList.querySelector('.tab-trigger.active');
+            if (activeTabButton) {
+                const onClickAttr = activeTabButton.getAttribute('onclick');
+                const match = onClickAttr.match(/switchTab\(event, '([^']+)', '([^']+)'\)/);
+                if (match) {
+                    const methodId = match[1];
+                    const tabName = match[2];
+                    methodActiveTabs[methodId] = tabName;
+                }
+            }
+        }
+    });
+    
+    Object.keys(methodResponses).forEach(methodId => {
+        const responseContainer = document.getElementById(`response-${methodId}`);
+        if (responseContainer) {
+            methodResponses[methodId] = {
+                html: responseContainer.innerHTML,
+                visible: responseContainer.style.display !== 'none'
+            };
+        }
+    });
+}
+
+function restoreMethodStates() {
+    Object.keys(methodResponses).forEach(methodId => {
+        const responseContainer = document.getElementById(`response-${methodId}`);
+        if (responseContainer && methodResponses[methodId]) {
+            responseContainer.innerHTML = methodResponses[methodId].html;
+            responseContainer.style.display = methodResponses[methodId].visible ? 'block' : 'none';
+        }
+    });
+    
+    setupTextareaAutoResize();
 }
 
 function formatBytes(bytes) {

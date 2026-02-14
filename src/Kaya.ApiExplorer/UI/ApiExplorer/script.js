@@ -1,6 +1,8 @@
 let controllers = []
 let selectedController = ""
 let expandedEndpoints = []
+let endpointActiveTabs = {}
+let endpointResponses = {}
 
 const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
@@ -743,6 +745,9 @@ function renderEndpoints() {
   document.getElementById("controllerDescription").textContent = controller.description
 
   const container = document.getElementById("endpointsList")
+  
+  saveEndpointStates()
+  
   container.innerHTML = ""
 
   const query = document.getElementById("searchInput").value.toLowerCase().trim()
@@ -812,31 +817,35 @@ function renderEndpoints() {
   if (query && endpointsToShow.length === 0) {
     container.innerHTML = '<p class="text-muted" style="text-align: center; padding: 2rem;">No endpoints match your search query.</p>'
   }
+  
+  restoreEndpointStates()
 }
 
 function renderEndpointTabs(endpoint, endpointId, index) {
+  const activeTab = endpointActiveTabs[endpointId] || 'parameters';
+  
   return `
         <div class="tabs">
             <div class="tab-list">
-                <button class="tab-trigger active" onclick="switchTab(event, '${endpointId}', 'parameters')">Parameters</button>
-                <button class="tab-trigger" onclick="switchTab(event, '${endpointId}', 'request')">Request</button>
-                <button class="tab-trigger" onclick="switchTab(event, '${endpointId}', 'responses')">Responses</button>
-                <button class="tab-trigger" onclick="switchTab(event, '${endpointId}', 'try')">Try it out</button>
+                <button class="tab-trigger ${activeTab === 'parameters' ? 'active' : ''}" onclick="switchTab(event, '${endpointId}', 'parameters')">Parameters</button>
+                <button class="tab-trigger ${activeTab === 'request' ? 'active' : ''}" onclick="switchTab(event, '${endpointId}', 'request')">Request</button>
+                <button class="tab-trigger ${activeTab === 'responses' ? 'active' : ''}" onclick="switchTab(event, '${endpointId}', 'responses')">Responses</button>
+                <button class="tab-trigger ${activeTab === 'try' ? 'active' : ''}" onclick="switchTab(event, '${endpointId}', 'try')">Try it out</button>
             </div>
             
-            <div class="tab-content active" id="${endpointId}-parameters">
+            <div class="tab-content ${activeTab === 'parameters' ? 'active' : ''}" id="${endpointId}-parameters">
                 ${renderParameters(endpoint)}
             </div>
             
-            <div class="tab-content" id="${endpointId}-request">
+            <div class="tab-content ${activeTab === 'request' ? 'active' : ''}" id="${endpointId}-request">
                 ${renderRequest(endpoint)}
             </div>
             
-            <div class="tab-content" id="${endpointId}-responses">
+            <div class="tab-content ${activeTab === 'responses' ? 'active' : ''}" id="${endpointId}-responses">
                 ${renderResponses(endpoint)}
             </div>
             
-            <div class="tab-content" id="${endpointId}-try">
+            <div class="tab-content ${activeTab === 'try' ? 'active' : ''}" id="${endpointId}-try">
                 ${renderTryItOut(endpoint, index)}
             </div>
         </div>
@@ -1149,10 +1158,57 @@ function renderHeaders() {
   })
 }
 
+// Helper functions to save and restore endpoint states
+function saveEndpointStates() {
+  // Save active tab for each visible endpoint
+  document.querySelectorAll('.endpoint-card').forEach(card => {
+    const tabList = card.querySelector('.tab-list');
+    if (tabList) {
+      const activeTabButton = tabList.querySelector('.tab-trigger.active');
+      if (activeTabButton) {
+        const onClickAttr = activeTabButton.getAttribute('onclick');
+        const match = onClickAttr.match(/switchTab\(event, '([^']+)', '([^']+)'\)/);
+        if (match) {
+          const endpointId = match[1];
+          const tabName = match[2];
+          endpointActiveTabs[endpointId] = tabName;
+        }
+      }
+    }
+  });
+  
+  // Save response data for each endpoint
+  Object.keys(endpointResponses).forEach(endpointId => {
+    const responseContainer = document.getElementById(`tryout-response-${endpointId}`);
+    if (responseContainer) {
+      endpointResponses[endpointId] = {
+        html: responseContainer.innerHTML,
+        visible: responseContainer.style.display !== 'none'
+      };
+    }
+  });
+}
+
+function restoreEndpointStates() {
+  // Restore response data for each endpoint
+  Object.keys(endpointResponses).forEach(endpointId => {
+    const responseContainer = document.getElementById(`tryout-response-${endpointId}`);
+    if (responseContainer && endpointResponses[endpointId]) {
+      responseContainer.innerHTML = endpointResponses[endpointId].html;
+      responseContainer.style.display = endpointResponses[endpointId].visible ? 'block' : 'none';
+    }
+  });
+  
+  // Auto-resize textareas in restored content
+  setupTextareaAutoResize();
+}
+
 // Event handlers
 function selectController(controllerName) {
   selectedController = controllerName
   expandedEndpoints = []
+  endpointActiveTabs = {}
+  endpointResponses = {}
   renderControllers()
   renderEndpoints()
 }
@@ -1180,8 +1236,9 @@ function switchTab(event, endpointId, tabName) {
   })
 
   document.getElementById(`${endpointId}-${tabName}`).classList.add("active")
-  
-  // Auto-resize textareas in the newly visible tab
+    
+  endpointActiveTabs[endpointId] = tabName;
+
   const activeTab = document.getElementById(`${endpointId}-${tabName}`);
   if (activeTab) setupTextareaAutoResize(activeTab);
 }
@@ -1279,6 +1336,11 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
   
   responseContainer.style.display = 'block';
   responseContainer.innerHTML = '<p>Executing request...</p>';
+  
+  endpointResponses[endpointIdentifier] = {
+    html: '<p>Executing request...</p>',
+    visible: true
+  };
 
   const startTime = performance.now();
 
@@ -1349,14 +1411,25 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
     `;
     
     responseContainer.innerHTML = responseHtml;
+    
+    endpointResponses[endpointIdentifier] = {
+      html: responseHtml,
+      visible: true
+    };
 
-  } catch (error) {    
-    responseContainer.innerHTML = `
+  } catch (error) {
+    const errorHtml = `
       <div class="response-error" style="margin-top: 12px;">
         <h5>Error</h5>
         <p style="color: var(--error-text);">${error.message}</p>
       </div>
-    `;
+    `;    
+    responseContainer.innerHTML = errorHtml;
+    
+    endpointResponses[endpointIdentifier] = {
+      html: errorHtml,
+      visible: true
+    };
   }
 }
 
