@@ -27,6 +27,13 @@
   --shadow-light: rgba(59, 130, 246, 0.2);
   --hover-bg: #f9fafb;
   --hover-secondary: #f8fafc;
+  --btn-secondary: #8b5cf6;
+  --btn-secondary-hover: #7c3aed;
+  --btn-danger: #dc3545;
+  --btn-danger-hover: #c82333;
+  --perf-good: #22c55e;
+  --perf-warning: #f59e0b;
+  --perf-bad: #ef4444;
 }
 
 [data-theme="dark"] {
@@ -58,6 +65,51 @@
   --shadow-light: rgba(59, 130, 246, 0.3);
   --hover-bg: #374151;
   --hover-secondary: #2d3748;
+  --btn-secondary: #8b5cf6;
+  --btn-secondary-hover: #a78bfa;
+  --btn-danger: #dc3545;
+  --btn-danger-hover: #c82333;
+  --perf-good: #22c55e;
+  --perf-warning: #f59e0b;
+  --perf-bad: #ef4444;
+}
+
+[data-theme="easter-egg"] {
+  /* Easter egg theme - Red & Yellow vibes */
+  --bg-primary: #1a0f0d;
+  --bg-secondary: #2a1815;
+  --bg-tertiary: #3d2620;
+  --text-primary: #f5f0e8;
+  --text-secondary: #daa678;
+  --text-muted: #c79e6e;
+  --border-primary: #55131b;
+  --border-secondary: #84202c;
+  --accent-primary: #c79e6e;
+  --accent-primary-hover: #daa678;
+  --accent-primary-light: rgba(199, 158, 110, 0.15);
+  --success-bg: #551d1d;
+  --success-text: #ffb3a8;
+  --success-border: #84202c;
+  --error-bg: #751d26;
+  --error-text: #ffb3a8;
+  --error-border: #84202c;
+  --warning-bg: #842c1d;
+  --warning-text: #daa678;
+  --warning-border: #a84728;
+  --info-bg: #3d2620;
+  --info-text: #c79e6e;
+  --info-border: #84202c;
+  --modal-overlay: rgba(0, 0, 0, 0.85);
+  --shadow-light: rgba(199, 158, 110, 0.2);
+  --hover-bg: #4a3028;
+  --hover-secondary: #3d2620;
+  --btn-secondary: #751d26;
+  --btn-secondary-hover: #84202c;
+  --btn-danger: #a84728;
+  --btn-danger-hover: #c79e6e;
+  --perf-good: #daa678;
+  --perf-warning: #c79e6e;
+  --perf-bad: #ffb3a8;
 }
 
 * {
@@ -72,6 +124,10 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   transition: background-color 0.3s ease, color 0.3s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .app-container {
@@ -105,6 +161,16 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 16px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+}
+
+.brand:hover {
+  opacity: 0.8;
+}
+
+.brand:active {
+  transform: scale(0.98);
 }
 
 .brand-icon {
@@ -311,6 +377,12 @@ body {
   border-color: #4338ca;
 }
 
+[data-theme="easter-egg"] .badge.patch {
+  background-color: #551d1d;
+  color: #daa678;
+  border-color: #84202c;
+}
+
 .badge.auth-badge {
   background-color: #fef3c7;
   color: #92400e;
@@ -354,6 +426,12 @@ body {
   background-color: rgba(139, 92, 246, 0.1);
   color: #c4b5fd;
   border-color: #8b5cf6;
+}
+
+[data-theme="easter-egg"] .badge.file-upload-badge {
+  background-color: rgba(199, 158, 110, 0.15);
+  color: #c79e6e;
+  border-color: #84202c;
 }
 
 /* Main Content Styles */
@@ -457,6 +535,31 @@ body {
 .btn-sm {
   padding: 6px 12px;
   font-size: 12px;
+}
+
+/* SVG Icon Theming for Buttons */
+.btn-primary svg {
+  stroke: currentColor;
+  transition: stroke 0.3s ease;
+}
+
+.btn-purple svg {
+  stroke: currentColor;
+  transition: stroke 0.3s ease;
+}
+
+.btn-danger svg {
+  stroke: currentColor;
+  transition: stroke 0.3s ease;
+}
+
+.btn-outline svg {
+  stroke: var(--accent-primary);
+  transition: stroke 0.3s ease;
+}
+
+.btn-outline:hover svg {
+  stroke: var(--accent-primary-hover);
 }
 
 .main-body {
@@ -904,7 +1007,7 @@ body {
 }
 
 .remove-header {
-  background: #dc3545;
+  background: var(--btn-danger);
   color: white;
   border: none;
   padding: 8px 12px;
@@ -916,7 +1019,7 @@ body {
 }
 
 .remove-header:hover {
-  background: #c82333;
+  background: var(--btn-danger-hover);
 }
 
 .body-textarea {
@@ -1315,19 +1418,21 @@ body {
 }
 
 .btn.btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
+  background: var(--bg-primary);
+  color: var(--btn-secondary);
+  border: 1px solid var(--border-primary);
   padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .btn.btn-secondary:hover {
-  background: #5a6268;
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
 }
 
 .editor-mode-dropdown {
@@ -1364,7 +1469,7 @@ body {
 }
 
 .kv-remove-btn {
-  background: #dc3545;
+  background: var(--btn-danger);
   color: white;
   border: none;
   padding: 8px 12px;
@@ -1380,7 +1485,7 @@ body {
 }
 
 .kv-remove-btn:hover {
-  background: #c82333;
+  background: var(--btn-danger-hover);
 }
 
 .response-headers-pre {
@@ -1583,4 +1688,23 @@ input[type="file"].file-input {
 
 .file-input-remove:hover {
   background: var(--error-bg);
+}
+
+/* Easter Egg Animation */
+@keyframes easterEggPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  50% {
+    transform: scale(1.15) rotate(5deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
 }

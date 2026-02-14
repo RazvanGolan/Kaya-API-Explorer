@@ -5,6 +5,8 @@ let expandedEndpoints = []
 const requestHeaders = [{ key: "Content-Type", value: "application/json" }]
 
 let currentTheme = getInitialTheme()
+let logoClickCount = 0
+let logoClickTimer = null
 
 // Auto-resize textarea helper
 function autoResizeTextarea(el) {
@@ -367,15 +369,27 @@ function formatDuration(ms) {
 }
 
 function getDurationColor(ms) {
-  if (ms < 500) return '#22c55e' 
-  if (ms < 1000) return '#f59e0b'
-  return '#ef4444'
+  const root = document.documentElement;
+  const styles = getComputedStyle(root);
+  const good = styles.getPropertyValue('--perf-good').trim();
+  const warning = styles.getPropertyValue('--perf-warning').trim();
+  const bad = styles.getPropertyValue('--perf-bad').trim();
+  
+  if (ms < 500) return good;
+  if (ms < 1000) return warning;
+  return bad;
 }
 
 function getSizeColor(bytes) {
-  if (bytes < 1024) return '#22c55e'
-  if (bytes < 1024 * 100) return '#f59e0b'
-  return '#ef4444'
+  const root = document.documentElement;
+  const styles = getComputedStyle(root);
+  const good = styles.getPropertyValue('--perf-good').trim();
+  const warning = styles.getPropertyValue('--perf-warning').trim();
+  const bad = styles.getPropertyValue('--perf-bad').trim();
+  
+  if (bytes < 1024) return good;
+  if (bytes < 1024 * 100) return warning;
+  return bad;
 }
 
 function generatePerformanceHtml(duration, requestSize, responseSize, status) {
@@ -388,7 +402,7 @@ function generatePerformanceHtml(duration, requestSize, responseSize, status) {
         <div><strong>Duration:</strong> <span style="color: ${getDurationColor(duration)}; font-weight: 600;">${formatDuration(duration)}</span></div>
         <div><strong>Request:</strong> <span style="color: ${getSizeColor(requestSize)}; font-weight: 600;">${formatBytes(requestSize)}</span></div>
         <div><strong>Response:</strong> <span style="color: ${getSizeColor(responseSize)}; font-weight: 600;">${formatBytes(responseSize)}</span></div>
-        <div><strong>Status:</strong> <span style="color: ${status >= 200 && status < 300 ? '#22c55e' : '#ef4444'}; font-weight: 600;">${status || 'Error'}</span></div>
+        <div><strong>Status:</strong> <span style="color: ${status >= 200 && status < 300 ? getComputedStyle(document.documentElement).getPropertyValue('--perf-good').trim() : getComputedStyle(document.documentElement).getPropertyValue('--perf-bad').trim()}; font-weight: 600;">${status || 'Error'}</span></div>
       </div>
     </div>
   `
@@ -425,7 +439,7 @@ function createKeyValueField(containerId, key = '', value = '', config = {}) {
   const escapedValue = escapeHtml(valueStr);
   
   const removeButtonClass = config.removeButtonClass || 'remove-header';
-  const removeButtonStyle = config.removeButtonStyle || 'background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;';
+  const removeButtonStyle = config.removeButtonStyle || 'background: var(--btn-danger); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer;';
   const removeFunctionName = config.removeFunctionName || 'removeKeyValueField';
   const onChangeHandler = config.onChangeHandler ? `onchange="${config.onChangeHandler}"` : '';
   
@@ -507,6 +521,51 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme)
   localStorage.setItem('theme', currentTheme)
   updateThemeButton()
+}
+
+function handleLogoClick() {
+  logoClickCount++;
+  
+  // Reset counter if 1 second has passed since last click
+  if (logoClickTimer) {
+    clearTimeout(logoClickTimer);
+  }
+  
+  logoClickTimer = setTimeout(() => {
+    logoClickCount = 0;
+  }, 1000);
+  
+  // Activate easter egg after 5 clicks
+  if (logoClickCount >= 5) {
+    logoClickCount = 0;
+    activateEasterEgg();
+    
+    if (logoClickTimer) {
+      clearTimeout(logoClickTimer);
+    }
+  }
+}
+
+function activateEasterEgg() {
+  // Add fun visual effect
+  const brand = document.querySelector('.brand');
+  brand.style.animation = 'easterEggPulse 0.6s ease-in-out';
+  
+  // Cycle to easter egg theme
+  if (currentTheme === 'easter-egg') {
+    currentTheme = 'light';
+  } else {
+    currentTheme = 'easter-egg';
+  }
+  
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  localStorage.setItem('theme', currentTheme);
+  updateThemeButton();
+  
+  // Remove animation after it plays
+  setTimeout(() => {
+    brand.style.animation = '';
+  }, 600);
 }
 
 function updateThemeButton() {
@@ -898,7 +957,7 @@ function renderTryItOut(endpoint, index) {
                     </svg>
                     Execute Request
                 </button>
-                <button class="btn btn-secondary" onclick="showExportModal('${selectedController}', ${index})" title="Export request as code">
+                <button class="btn btn-outline" onclick="showExportModal('${selectedController}', ${index})" title="Export request as code">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="16,16 12,12 8,16"></polyline>
                         <line x1="12" y1="12" x2="12" y2="21"></line>
@@ -1062,7 +1121,13 @@ function renderTryItOutRequestBody(endpoint, endpointIdentifier) {
                 style="width: 100%; height: 160px; font-family: Monaco, monospace;">${endpoint.requestBody.example}</textarea>
       <div id="${keyValueId}" class="request-body-kv-editor" style="display: none;">
         <div id="${keyValueId}-fields"></div>
-        <button type="button" class="btn btn-secondary" style="margin-top: 8px;" onclick="addRequestBodyField('${keyValueId}')">Add Field</button>
+        <button type="button" class="btn btn-outline" style="margin-top: 8px;" onclick="addRequestBodyField('${keyValueId}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Field
+        </button>
       </div>
     </div>
   `;
@@ -1289,7 +1354,7 @@ async function executeEndpoint(endpoint, endpointIdentifier) {
     responseContainer.innerHTML = `
       <div class="response-error" style="margin-top: 12px;">
         <h5>Error</h5>
-        <p style="color: #dc3545;">${error.message}</p>
+        <p style="color: var(--error-text);">${error.message}</p>
       </div>
     `;
   }
@@ -1902,6 +1967,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       clearBtn.style.display = "none"
     }
   })
+
+  // Easter egg logo click handler
+  const brandElement = document.querySelector('.brand')
+  if (brandElement) {
+    brandElement.addEventListener("click", handleLogoClick)
+  }
 
   document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme)
   document.getElementById("requestBuilderBtn").addEventListener("click", () => showModal("requestBuilderModal"))

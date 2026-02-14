@@ -9,11 +9,6 @@
   --disconnected-bg: #ef4444;
 }
 
-/* SignalR-specific brand icon gradient */
-.brand-icon {
-  background: linear-gradient(135deg, var(--accent-primary), #8b5cf6) !important;
-}
-
 /* Theme icon display logic */
 [data-theme="light"] .moon-icon,
 [data-theme="dark"] .sun-icon {
