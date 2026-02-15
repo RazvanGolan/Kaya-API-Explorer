@@ -158,7 +158,8 @@ public class EndpointScanner : IEndpointScanner
                         p.ParameterType != typeof(Guid) &&
                         p.GetCustomAttribute<FromQueryAttribute>() == null &&
                         p.GetCustomAttribute<FromRouteAttribute>() == null &&
-                        p.GetCustomAttribute<FromHeaderAttribute>() == null);
+                        p.GetCustomAttribute<FromHeaderAttribute>() == null &&
+                        p.GetCustomAttribute<FromFormAttribute>() == null);
             });
 
         if (bodyParam == null) return null;
@@ -343,19 +344,19 @@ public class EndpointScanner : IEndpointScanner
     private static string DetermineParameterSource(ParameterInfo param, string routePath)
     {
         var fromBodyAttr = param.GetCustomAttribute<FromBodyAttribute>();
-        if (fromBodyAttr != null) return "Body";
+        if (fromBodyAttr is not null) return "Body";
 
         var fromQueryAttr = param.GetCustomAttribute<FromQueryAttribute>();
-        if (fromQueryAttr != null) return "Query";
+        if (fromQueryAttr is not null) return "Query";
 
         var fromRouteAttr = param.GetCustomAttribute<FromRouteAttribute>();
-        if (fromRouteAttr != null) return "Route";
+        if (fromRouteAttr is not null) return "Route";
 
         var fromHeaderAttr = param.GetCustomAttribute<FromHeaderAttribute>();
-        if (fromHeaderAttr != null) return "Header";
+        if (fromHeaderAttr is not null) return "Header";
 
         var fromFormAttr = param.GetCustomAttribute<FromFormAttribute>();
-        if (fromFormAttr != null) return "Form";
+        if (fromFormAttr is not null) return "Form";
 
         if (!string.IsNullOrEmpty(param.Name) && routePath.Contains($"{{{param.Name}}}"))
         {

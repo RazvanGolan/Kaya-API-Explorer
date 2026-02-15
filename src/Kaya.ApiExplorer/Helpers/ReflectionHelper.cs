@@ -188,12 +188,28 @@ public static class ReflectionHelper
         foreach (var property in properties)
         {
             var propertyType = property.PropertyType;
+            var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
             var isRequired = !IsNullableType(propertyType);
             
-            if (IsComplexType(propertyType))
+            // Add property to schema
+            var apiProperty = new ApiProperty
             {
-                GenerateSchemaForType(propertyType, schemas, processedTypes);
+                Type = GetFriendlyTypeName(underlyingType),
+                Required = isRequired,
+                DefaultValue = property.GetCustomAttribute<System.ComponentModel.DefaultValueAttribute>()?.Value
+            };
+            
+            if (IsComplexType(underlyingType) && !processedTypes.Contains(underlyingType))
+            {
+                GenerateSchemaForType(underlyingType, schemas, processedTypes);
+                var nestedTypeName = GetFriendlyTypeName(underlyingType);
+                if (schemas.ContainsKey(nestedTypeName))
+                {
+                    apiProperty.NestedSchema = schemas[nestedTypeName];
+                }
             }
+            
+            schema.Properties[property.Name] = apiProperty;
             
             if (isRequired)
             {

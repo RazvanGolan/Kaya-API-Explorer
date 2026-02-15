@@ -31,44 +31,117 @@ function setupTextareaAutoResize(container) {
   });
 }
 
-function generateCurlCode(url, method, headers, body) {
+function generateCurlCode(url, method, headers, body, formFields = null) {
   let curlCommand = `curl -X ${method.toUpperCase()} "${url}"`;
   
+  // Only include Content-Type header if it's not multipart/form-data (curl sets it automatically with -F)
   Object.entries(headers).forEach(([key, value]) => {
-    curlCommand += ` \\\n  -H "${key}: ${value}"`;
+    if (!(formFields && key.toLowerCase() === 'content-type')) {
+      curlCommand += ` \\\n  -H "${key}: ${value}"`;
+    }
   });
   
-  if (body && method.toUpperCase() !== 'GET') {
+  if (formFields && formFields.length > 0) {
+    // Use -F for form data fields
+    formFields.forEach(field => {
+      if (field.isFile) {
+        curlCommand += ` \\\n  -F "${field.key}=@/path/to/file"`;
+      } else {
+        curlCommand += ` \\\n  -F "${field.key}=${field.value}"`;
+      }
+    });
+  } else if (body && method.toUpperCase() !== 'GET') {
     curlCommand += ` \\\n  -d '${body}'`;
   }
   
   return curlCommand;
 }
 
-function generateJavaScriptCode(url, method, headers, body) {
-  const headersObj = JSON.stringify(headers, null, 2);
+function generateJavaScriptCode(url, method, headers, body, formFields = null) {
+  let code = '';
   
-  let code = `const response = await fetch('${url}', {\n  method: '${method.toUpperCase()}',\n  headers: ${headersObj}`;
-  
-  if (body && method.toUpperCase() !== 'GET') {
-    code += `,\n  body: ${JSON.stringify(body)}`;
+  if (formFields && formFields.length > 0) {
+    code += 'const formData = new FormData();\n';
+    formFields.forEach(field => {
+      if (field.isFile) {
+        code += `formData.append('${field.key}', fileInput.files[0]); // Replace with your file input\n`;
+      } else {
+        code += `formData.append('${field.key}', '${field.value}');\n`;
+      }
+    });
+    code += '\n';
+    
+    // Filter out Content-Type for FormData
+    const filteredHeaders = Object.fromEntries(
+      Object.entries(headers).filter(([key]) => key.toLowerCase() !== 'content-type')
+    );
+    const headersObj = Object.keys(filteredHeaders).length > 0 ? JSON.stringify(filteredHeaders, null, 2) : '{}';
+    
+    code += `const response = await fetch('${url}', {\n  method: '${method.toUpperCase()}',\n  headers: ${headersObj},\n  body: formData\n});`;
+  } else {
+    const headersObj = JSON.stringify(headers, null, 2);
+    code = `const response = await fetch('${url}', {\n  method: '${method.toUpperCase()}',\n  headers: ${headersObj}`;
+    
+    if (body && method.toUpperCase() !== 'GET') {
+      code += `,\n  body: ${JSON.stringify(body)}`;
+    }
+    
+    code += '\n})';
   }
   
-  code += '\n});\n\nconst data = await response.json();\nconsole.log(data);';
+  code += ';\n\nconst data = await response.json();\nconsole.log(data);';
   
   return code;
 }
 
-function generatePythonCode(url, method, headers, body) {
-  let code = 'import requests\nimport json\n\n';
+function generatePythonCode(url, method, headers, body, formFields = null) {
+  let code = 'import requests\n\n';
   code += `url = "${url}"\n`;
-  code += `headers = ${JSON.stringify(headers, null, 2).replace(/"/g, "'")}\n`;
   
-  if (body && method.toUpperCase() !== 'GET') {
-    code += `data = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}\n\n`;
-    code += `response = requests.${method.toLowerCase()}(url, headers=headers, json=data)\n`;
+  if (formFields && formFields.length > 0) {
+    // Filter out Content-Type for multipart
+    const filteredHeaders = Object.fromEntries(
+      Object.entries(headers).filter(([key]) => key.toLowerCase() !== 'content-type')
+    );
+    if (Object.keys(filteredHeaders).length > 0) {
+      code += `headers = ${JSON.stringify(filteredHeaders, null, 2).replace(/"/g, "'")}\n`;
+    }
+    
+    const hasFiles = formFields.some(f => f.isFile);
+    if (hasFiles) {
+      code += '\nfiles = {\n';
+      formFields.forEach((field, i) => {
+        if (field.isFile) {
+          code += `    '${field.key}': open('/path/to/file', 'rb')`;
+        } else {
+          code += `    '${field.key}': (None, '${field.value}')`;
+        }
+        code += i < formFields.length - 1 ? ',\n' : '\n';
+      });
+      code += '}\n\n';
+      code += Object.keys(filteredHeaders).length > 0 
+        ? `response = requests.${method.toLowerCase()}(url, headers=headers, files=files)\n`
+        : `response = requests.${method.toLowerCase()}(url, files=files)\n`;
+    } else {
+      code += '\ndata = {\n';
+      formFields.forEach((field, i) => {
+        code += `    '${field.key}': '${field.value}'`;
+        code += i < formFields.length - 1 ? ',\n' : '\n';
+      });
+      code += '}\n\n';
+      code += Object.keys(filteredHeaders).length > 0
+        ? `response = requests.${method.toLowerCase()}(url, headers=headers, data=data)\n`
+        : `response = requests.${method.toLowerCase()}(url, data=data)\n`;
+    }
   } else {
-    code += `\nresponse = requests.${method.toLowerCase()}(url, headers=headers)\n`;
+    code += `headers = ${JSON.stringify(headers, null, 2).replace(/"/g, "'")}\n`;
+    
+    if (body && method.toUpperCase() !== 'GET') {
+      code += `data = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}\n\n`;
+      code += `response = requests.${method.toLowerCase()}(url, headers=headers, json=data)\n`;
+    } else {
+      code += `\nresponse = requests.${method.toLowerCase()}(url, headers=headers)\n`;
+    }
   }
   
   code += 'print(response.status_code)\nprint(response.json())';
@@ -76,23 +149,57 @@ function generatePythonCode(url, method, headers, body) {
   return code;
 }
 
-function generateRubyCode(url, method, headers, body) {
-  let code = "require 'net/http'\nrequire 'json'\nrequire 'uri'\n\n";
-  code += `uri = URI('${url}')\n`;
-  code += `http = Net::HTTP.new(uri.host, uri.port)\n`;
+function generateRubyCode(url, method, headers, body, formFields = null) {
+  let code = "require 'net/http'\nrequire 'json'\nrequire 'uri'\n";
   
-  if (url.startsWith('https')) {
-    code += 'http.use_ssl = true\n';
-  }
-  
-  code += `\nrequest = Net::HTTP::${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}.new(uri)\n`;
-  
-  Object.entries(headers).forEach(([key, value]) => {
-    code += `request['${key}'] = '${value}'\n`;
-  });
-  
-  if (body && method.toUpperCase() !== 'GET') {
-    code += `request.body = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}.to_json\n`;
+  if (formFields && formFields.length > 0) {
+    code += "require 'net/http/post/multipart'\n\n";
+    code += `uri = URI('${url}')\n`;
+    code += `http = Net::HTTP.new(uri.host, uri.port)\n`;
+    
+    if (url.startsWith('https')) {
+      code += 'http.use_ssl = true\n';
+    }
+    
+    code += `\nrequest = Net::HTTP::${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}.new(uri)\n`;
+    
+    // Filter out Content-Type for multipart
+    Object.entries(headers).forEach(([key, value]) => {
+      if (key.toLowerCase() !== 'content-type') {
+        code += `request['${key}'] = '${value}'\n`;
+      }
+    });
+    
+    code += '\n# Note: Install multipart-post gem: gem install multipart-post\n';
+    code += 'form_data = {\n';
+    formFields.forEach((field, i) => {
+      if (field.isFile) {
+        code += `  '${field.key}' => UploadIO.new('/path/to/file', 'application/octet-stream')`;
+      } else {
+        code += `  '${field.key}' => '${field.value}'`;
+      }
+      code += i < formFields.length - 1 ? ',\n' : '\n';
+    });
+    code += '}\n';
+    code += 'request.set_form form_data, \'multipart/form-data\'\n';
+  } else {
+    code += "\n";
+    code += `uri = URI('${url}')\n`;
+    code += `http = Net::HTTP.new(uri.host, uri.port)\n`;
+    
+    if (url.startsWith('https')) {
+      code += 'http.use_ssl = true\n';
+    }
+    
+    code += `\nrequest = Net::HTTP::${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}.new(uri)\n`;
+    
+    Object.entries(headers).forEach(([key, value]) => {
+      code += `request['${key}'] = '${value}'\n`;
+    });
+    
+    if (body && method.toUpperCase() !== 'GET') {
+      code += `request.body = ${JSON.stringify(body, null, 2).replace(/"/g, "'")}.to_json\n`;
+    }
   }
   
   code += '\nresponse = http.request(request)\nputs response.code\nputs response.body';
@@ -100,25 +207,53 @@ function generateRubyCode(url, method, headers, body) {
   return code;
 }
 
-function generateCSharpCode(url, method, headers, body) {
-  let code = 'using System;\nusing System.Net.Http;\nusing System.Text;\nusing System.Threading.Tasks;\n\n';
-  code += 'class Program\n{\n    static async Task Main(string[] args)\n    {\n';
-  code += '        using var client = new HttpClient();\n';
+function generateCSharpCode(url, method, headers, body, formFields = null) {
+  let code = 'using System;\nusing System.Net.Http;\n';
   
-  Object.entries(headers).forEach(([key, value]) => {
-    if (key.toLowerCase() !== 'content-type') {
-      code += `        client.DefaultRequestHeaders.Add("${key}", "${value}");\n`;
-    }
-  });
-  
-  code += `\n        var url = "${url}";\n`;
-  
-  if (body && method.toUpperCase() !== 'GET') {
-    code += `        var json = ${JSON.stringify(body, null, 8)};\n`;
-    code += '        var content = new StringContent(json, Encoding.UTF8, "application/json");\n\n';
-    code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url, content);\n`;
+  if (formFields && formFields.length > 0) {
+    code += 'using System.IO;\nusing System.Threading.Tasks;\n\n';
+    code += 'class Program\n{\n    static async Task Main(string[] args)\n    {\n';
+    code += '        using var client = new HttpClient();\n';
+    
+    // Filter out Content-Type for multipart
+    Object.entries(headers).forEach(([key, value]) => {
+      if (key.toLowerCase() !== 'content-type') {
+        code += `        client.DefaultRequestHeaders.Add("${key}", "${value}");\n`;
+      }
+    });
+    
+    code += `\n        var url = "${url}";\n`;
+    code += '        using var formData = new MultipartFormDataContent();\n\n';
+    
+    formFields.forEach(field => {
+      if (field.isFile) {
+        code += `        // Add file: formData.Add(new StreamContent(File.OpenRead("/path/to/file")), "${field.key}", "filename");\n`;
+      } else {
+        code += `        formData.Add(new StringContent("${field.value}"), "${field.key}");\n`;
+      }
+    });
+    
+    code += `\n        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url, formData);\n`;
   } else {
-    code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url);\n`;
+    code += 'using System.Text;\nusing System.Threading.Tasks;\n\n';
+    code += 'class Program\n{\n    static async Task Main(string[] args)\n    {\n';
+    code += '        using var client = new HttpClient();\n';
+    
+    Object.entries(headers).forEach(([key, value]) => {
+      if (key.toLowerCase() !== 'content-type') {
+        code += `        client.DefaultRequestHeaders.Add("${key}", "${value}");\n`;
+      }
+    });
+    
+    code += `\n        var url = "${url}";\n`;
+    
+    if (body && method.toUpperCase() !== 'GET') {
+      code += `        var json = ${JSON.stringify(body, null, 8)};\n`;
+      code += '        var content = new StringContent(json, Encoding.UTF8, "application/json");\n\n';
+      code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url, content);\n`;
+    } else {
+      code += `        var response = await client.${method.charAt(0).toUpperCase() + method.slice(1).toLowerCase()}Async(url);\n`;
+    }
   }
   
   code += '\n        var responseContent = await response.Content.ReadAsStringAsync();\n';
@@ -184,7 +319,13 @@ function buildRequestData(config) {
   const hasFileParams = endpoint && endpoint.parameters && 
     endpoint.parameters.some(p => p.source === "File" || p.isFile);
   
-  const headers = hasFileParams ? { ...customHeaders } : { 'Content-Type': 'application/json', ...customHeaders };
+  const hasFormParams = endpoint && endpoint.parameters &&
+    endpoint.parameters.some(p => p.source === "Form");
+  
+  // Use multipart/form-data for file or form parameters (let browser set the boundary)
+  const hasFileOrFormParams = hasFileParams || hasFormParams;
+  
+  const headers = hasFileOrFormParams ? { ...customHeaders } : { 'Content-Type': 'application/json', ...customHeaders };
   
   if (endpoint && endpoint.parameters && endpointIdentifier) {
     const headerParams = endpoint.parameters.filter(p => p.source === "Header") || [];
@@ -211,8 +352,8 @@ function buildRequestData(config) {
   const method = endpoint ? endpoint.httpMethodType : 'GET';
   
   if (method !== 'GET' && endpoint && endpointIdentifier) {
-    // Handle file uploads with multipart/form-data
-    if (hasFileParams) {
+    // Handle file uploads or form data with multipart/form-data
+    if (hasFileOrFormParams) {
       const formData = new FormData();
       
       // Add file parameters
@@ -241,9 +382,32 @@ function buildRequestData(config) {
       // Add form parameters (FromForm)
       const formParams = endpoint.parameters.filter(p => p.source === "Form");
       formParams.forEach(param => {
-        const paramInput = document.getElementById(`param-${endpointIdentifier}-${param.name}`);
-        if (paramInput && paramInput.value) {
-          formData.append(param.name, paramInput.value);
+        // Check if this is a complex type with schema (multiple properties)
+        if (param.schema && param.schema.properties && Object.keys(param.schema.properties).length > 0) {
+          // Collect values from all property input fields
+          const properties = param.schema.properties;
+          Object.keys(properties).forEach(propName => {
+            const propInput = document.getElementById(`param-${endpointIdentifier}-${param.name}.${propName}`);
+            if (propInput) {
+              if (propInput.type === 'file') {
+                if (propInput.files && propInput.files.length > 0) {
+                  formData.append(`${param.name}.${propName}`, propInput.files[0]);
+                }
+                return;
+              } else {
+                const value = propInput.value;
+                if (value !== '' && value !== null && value !== undefined) {
+                  formData.append(`${param.name}.${propName}`, value);
+                }
+              }
+            }
+          });
+        } else {
+          // Simple form parameter
+          const paramInput = document.getElementById(`param-${endpointIdentifier}-${param.name}`);
+          if (paramInput && paramInput.value) {
+            formData.append(param.name, paramInput.value);
+          }
         }
       });
       
@@ -318,11 +482,25 @@ function buildRequestData(config) {
     }
   }
   
+  // Extract FormData entries for export
+  let formFields = null;
+  if (requestBody instanceof FormData) {
+    formFields = [];
+    for (const [key, value] of requestBody.entries()) {
+      formFields.push({
+        key: key,
+        value: value,
+        isFile: value instanceof File
+      });
+    }
+  }
+  
   return {
     url: finalUrl,
     method: method,
     headers: headers,
     body: requestBody,
+    formFields: formFields,
     requestOptions: {
       method: method,
       headers: headers,
@@ -1049,13 +1227,72 @@ function renderTryItOutParameters(endpoint, endpointIdentifier) {
     parametersHtml += `
       <div class="tryout-parameter-group">
         <h4>Form Data</h4>
-        ${formParams.map(param => `
+        ${formParams.map((param, paramIndex) => {
+          // Check if this is a complex type with schema (multiple properties)
+          if (param.schema && param.schema.properties && Object.keys(param.schema.properties).length > 0) {
+            // Render fields for each property in the complex type
+            const properties = param.schema.properties;
+            const paramLabel = formParams.length > 1 ? `<div style="margin: ${paramIndex > 0 ? '16px' : '0'} 0 8px 0; padding-bottom: 8px; border-bottom: 2px solid var(--border-primary); font-weight: 600; color: var(--text-primary);">${param.name} (${param.type})</div>` : '';
+            
+            return paramLabel + Object.entries(properties).map(([propName, propInfo]) => {
+              const isRequired = param.schema.required && param.schema.required.includes(propName);
+              const inputType = getInputTypeForProperty(propInfo.type);
+              const placeholder = `Enter ${propName}`;
+              const defaultVal = propInfo.defaultValue !== null && propInfo.defaultValue !== undefined ? propInfo.defaultValue : '';
+              
+              if (inputType === 'file') {
+                const inputId = `param-${endpointIdentifier}-${param.name}.${propName}`;
+                const infoId = `file-info-${endpointIdentifier}-${param.name}.${propName}`;
+                return `
+              <div class="tryout-parameter-row" style="align-items: stretch;">
+                <label class="tryout-parameter-label ${isRequired ? 'required' : ''}" style="padding-top: 8px;">${propName}:</label>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                  <div class="file-input-wrapper">
+                    <input type="file" 
+                           id="${inputId}" 
+                           class="file-input" 
+                           data-form-param="${param.name}"
+                           data-property-name="${propName}"
+                           onchange="updateFileInputLabel('${inputId}', '${infoId}')">
+                    <label for="${inputId}" class="file-input-label" id="label-${inputId}">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      <span id="label-text-${inputId}">Select a file to upload</span>
+                    </label>
+                  </div>
+                  <div class="file-input-info" id="${infoId}"></div>
+                </div>
+                <span class="tryout-parameter-type">${propInfo.type}</span>
+              </div>`;
+              } else {
+                return `
+              <div class="tryout-parameter-row">
+                <label class="tryout-parameter-label ${isRequired ? 'required' : ''}">${propName}:</label>
+                <input type="${inputType}" 
+                       id="param-${endpointIdentifier}-${param.name}.${propName}" 
+                       placeholder="${placeholder}" 
+                       class="header-input" 
+                       style="flex: 1;" 
+                       ${defaultVal ? `value="${defaultVal}"` : ''}
+                       data-form-param="${param.name}"
+                       data-property-name="${propName}">
+                <span class="tryout-parameter-type">${propInfo.type}</span>
+              </div>`;
+              }
+            }).join('');
+          } else {
+            // Simple form parameter - render single input
+            return `
           <div class="tryout-parameter-row">
             <label class="tryout-parameter-label ${param.required ? 'required' : ''}">${param.name}:</label>
             <input type="text" id="param-${endpointIdentifier}-${param.name}" placeholder="Enter ${param.name}" class="header-input" style="flex: 1;" ${param.defaultValue ? `value="${param.defaultValue}"` : ''}>
             <span class="tryout-parameter-type">${param.type}</span>
-          </div>
-        `).join('')}
+          </div>`;
+          }
+        }).join('')}
       </div>
     `;
   }
@@ -1307,6 +1544,22 @@ function formatFileSize(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function getInputTypeForProperty(propType) {
+  const typeLower = propType.toLowerCase();
+  
+  if (typeLower.includes('iformfile') || typeLower.includes('formfile')) {
+    return 'file';
+  }
+  
+  if (typeLower.includes('int') || typeLower.includes('long') || typeLower.includes('short') || 
+      typeLower.includes('byte') || typeLower.includes('decimal') || 
+      typeLower.includes('double') || typeLower.includes('float')) {
+    return 'number';
+  }
+  
+  return 'text';
 }
 
 async function executeEndpointById(controllerName, endpointIndex) {
@@ -1856,24 +2109,24 @@ function updateExportCode(format, type = 'endpoint') {
   const dataKey = type === 'requestBuilder' ? 'currentRequestBuilderExportData' : 'currentExportData';
   if (!window[dataKey]) return;
   
-  const { url, method, headers, body } = window[dataKey];
+  const { url, method, headers, body, formFields } = window[dataKey];
   let code = '';
-  
+
   switch (format) {
     case 'curl':
-      code = generateCurlCode(url, method, headers, body);
+      code = generateCurlCode(url, method, headers, body, formFields);
       break;
     case 'javascript':
-      code = generateJavaScriptCode(url, method, headers, body);
+      code = generateJavaScriptCode(url, method, headers, body, formFields);
       break;
     case 'python':
-      code = generatePythonCode(url, method, headers, body);
+      code = generatePythonCode(url, method, headers, body, formFields);
       break;
     case 'ruby':
-      code = generateRubyCode(url, method, headers, body);
+      code = generateRubyCode(url, method, headers, body, formFields);
       break;
     case 'csharp':
-      code = generateCSharpCode(url, method, headers, body);
+      code = generateCSharpCode(url, method, headers, body, formFields);
       break;
     default:
       code = 'Format not supported';

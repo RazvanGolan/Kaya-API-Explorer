@@ -277,4 +277,121 @@ public class UsersController : ControllerBase
             }
         });
     }
+
+    /// <summary>
+    /// Updates user profile with form data including file upload
+    /// This endpoint tests complex form data handling with multiple fields and file upload
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="formData">Profile update form data with multiple fields</param>
+    /// <returns>Updated user profile information</returns>
+    [HttpPost("{id}/profile")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<object>> UpdateProfile(
+        int id, 
+        [FromForm] ProfileUpdateFormData formData)
+    {
+        var user = _users.FirstOrDefault(u => u.Id == id);
+        if (user == null)
+        {
+            return NotFound($"User with ID {id} not found");
+        }
+
+        // Update user information
+        user.Name = $"{formData.FirstName} {formData.LastName}";
+        user.Email = formData.Email;
+        user.Role = formData.Role;
+
+        // Handle profile image upload
+        string? imageUrl = null;
+        if (formData.ProfileImage != null)
+        {
+            // Simulate file upload
+            var fileName = $"profile_{id}_{Guid.NewGuid()}{Path.GetExtension(formData.ProfileImage.FileName)}";
+            imageUrl = $"/uploads/profiles/{fileName}";
+            
+            // In a real application, you would save the file here
+            // await SaveFileAsync(formData.ProfileImage, fileName);
+        }
+
+        return Ok(new
+        {
+            Message = "Profile updated successfully",
+            User = new
+            {
+                Id = user.Id,
+                FirstName = formData.FirstName,
+                LastName = formData.LastName,
+                FullName = user.Name,
+                Email = formData.Email,
+                Phone = formData.Phone,
+                DateOfBirth = formData.DateOfBirth,
+                Bio = formData.Bio,
+                ReceiveNewsletter = formData.ReceiveNewsletter,
+                Role = formData.Role.ToString(),
+                ProfileImageUrl = imageUrl,
+                UpdatedAt = DateTime.UtcNow
+            }
+        });
+    }
+
+    /// <summary>
+    /// Updates user profile with both personal info and address (demonstrates multiple FromForm parameters)
+    /// This endpoint accepts two separate form data objects
+    /// </summary>
+    /// <param name="id">User ID</param>
+    /// <param name="profile">Profile information form data</param>
+    /// <param name="address">Address form data</param>
+    /// <returns>Updated user with address</returns>
+    [HttpPost("{id}/profile-with-address")]
+    [Consumes("multipart/form-data")]
+    public ActionResult<object> UpdateProfileWithAddress(
+        int id,
+        [FromForm] ProfileUpdateFormData profile,
+        [FromForm] AddressFormData address)
+    {
+        var user = _users.FirstOrDefault(u => u.Id == id);
+        if (user == null)
+        {
+            return NotFound($"User with ID {id} not found");
+        }
+
+        // Update user information
+        user.Name = $"{profile.FirstName} {profile.LastName}";
+        user.Email = profile.Email;
+        user.Role = profile.Role;
+
+        // Update address
+        var userAddress = new Address(
+            address.Street,
+            address.City,
+            address.State,
+            address.ZipCode,
+            address.Country
+        );
+
+        return Ok(new
+        {
+            Message = "Profile and address updated successfully",
+            User = new
+            {
+                Id = user.Id,
+                FirstName = profile.FirstName,
+                LastName = profile.LastName,
+                Email = profile.Email,
+                Phone = profile.Phone,
+                Bio = profile.Bio,
+                Role = profile.Role.ToString(),
+                UpdatedAt = DateTime.UtcNow
+            },
+            Address = new
+            {
+                address.Street,
+                address.City,
+                address.State,
+                address.ZipCode,
+                address.Country
+            }
+        });
+    }
 }

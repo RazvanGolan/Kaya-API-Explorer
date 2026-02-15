@@ -381,3 +381,27 @@ public class CreateNotificationRequest
     public Priority Priority { get; set; } = Priority.Medium;
     public Dictionary<string, object> Data { get; set; } = new();
 }
+
+// Profile update form data model
+public class ProfileUpdateFormData
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Phone { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? Bio { get; set; }
+    public bool ReceiveNewsletter { get; set; }
+    public UserRole Role { get; set; } = UserRole.User;
+    public IFormFile? ProfileImage { get; set; }
+}
+
+// Additional form data for address
+public class AddressFormData
+{
+    public string Street { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string ZipCode { get; set; } = string.Empty;
+    public string Country { get; set; } = string.Empty;
+}
